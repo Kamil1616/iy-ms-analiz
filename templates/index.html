@@ -157,18 +157,86 @@ document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString(
 document.getElementById('fixtureList').innerHTML='<div class="error-msg">Veri alinamadi: '+e.message+'</div>';
 }}
 
-const BIG_LEAGUES=['UEFA Champions League','UEFA Europa League','UEFA Conference League','Premier League','La Liga','Serie A','Bundesliga','Ligue 1','Süper Lig','Eredivisie','Primeira Liga','Championship','Serie B','2. Bundesliga','Liga NOS'];
+// league_id bazlı filtre - API-Football ID'leri
+const LEAGUE_ID_MAP = [
+  {country:'🏆 Avrupa Kupaları', leagues:[{id:2,name:'UEFA Champions League'},{id:3,name:'UEFA Europa League'},{id:848,name:'UEFA Conference League'}]},
+  {country:'🏴‍ İngiltere', leagues:[{id:39,name:'Premier League'},{id:40,name:'Championship'},{id:41,name:'League One'},{id:42,name:'League Two'}]},
+  {country:'🇪🇸 İspanya', leagues:[{id:140,name:'La Liga'},{id:141,name:'La Liga2'}]},
+  {country:'🇮🇹 İtalya', leagues:[{id:135,name:'Serie A'},{id:136,name:'Serie B'}]},
+  {country:'🇩🇪 Almanya', leagues:[{id:78,name:'Bundesliga'},{id:79,name:'2. Bundesliga'}]},
+  {country:'🇫🇷 Fransa', leagues:[{id:61,name:'Ligue 1'},{id:62,name:'Ligue 2'}]},
+  {country:'🇹🇷 Türkiye', leagues:[{id:203,name:'Süper Lig'},{id:204,name:'TFF 1. Lig'}]},
+  {country:'🇳🇱 Hollanda', leagues:[{id:88,name:'Eredivisie'},{id:89,name:'Eerste Divisie'}]},
+  {country:'🇵🇹 Portekiz', leagues:[{id:94,name:'Primeira Liga'},{id:95,name:'Segunda Liga'}]},
+  {country:'🇧🇪 Belçika', leagues:[{id:144,name:'First Division A'}]},
+  {country:'🇦🇹 Avusturya', leagues:[{id:218,name:'Austrian Football Bundesliga'}]},
+  {country:'🇵🇱 Polonya', leagues:[{id:106,name:'Ekstraklasa'},{id:107,name:'I Liga'}]},
+  {country:'🇷🇴 Romanya', leagues:[{id:283,name:'Liga I'}]},
+  {country:'🇷🇺 Rusya', leagues:[{id:235,name:'Premier League'}]},
+  {country:'🏴‍ İskoçya', leagues:[{id:179,name:'Premiership'},{id:180,name:'Championship'}]},
+  {country:'🇬🇷 Yunanistan', leagues:[{id:197,name:'Super League'}]},
+  {country:'🇸🇪 İsveç', leagues:[{id:113,name:'Allsvenskan'},{id:114,name:'Superettan'}]},
+  {country:'🇩🇰 Danimarka', leagues:[{id:119,name:'Superliga'}]},
+  {country:'🇳🇴 Norveç', leagues:[{id:103,name:'Eliteserien'},{id:104,name:'1. divisjon'}]},
+  {country:'🇨🇭 İsviçre', leagues:[{id:207,name:'Super League'},{id:208,name:'Challenge League'}]},
+  {country:'🇭🇺 Macaristan', leagues:[{id:271,name:'OTP Bank Liga'}]},
+  {country:'🇸🇰 Slovakya', leagues:[{id:332,name:'Super Liga'}]},
+  {country:'🇸🇮 Slovenya', leagues:[{id:348,name:'PrvaLiga'}]},
+  {country:'🇷🇸 Sırbistan', leagues:[{id:286,name:'Super Liga'}]},
+  {country:'🇭🇷 Hırvatistan', leagues:[{id:210,name:'HNL'},{id:211,name:'Prva NL'}]},
+  {country:'🇧🇬 Bulgaristan', leagues:[{id:172,name:'First Professional League'},{id:173,name:'Second Professional League'}]},
+  {country:'🇨🇿 Çekya', leagues:[{id:345,name:'Czech Liga'}]},
+  {country:'🇲🇪 Karadağ', leagues:[{id:296,name:'Prva CFL'}]},
+  {country:'🇲🇰 Kuzey Makedonya', leagues:[{id:299,name:'1. MFL'}]},
+  {country:'🇱🇻 Letonya', leagues:[{id:371,name:'Virsliga'}]},
+  {country:'🇱🇹 Litvanya', leagues:[{id:365,name:'A Lyga'}]},
+  {country:'🇪🇪 Estonya', leagues:[{id:322,name:'Meistriliiga'},{id:323,name:'Esiliiga'}]},
+  {country:'🇫🇮 Finlandiya', leagues:[{id:244,name:'Veikkausliiga'}]},
+  {country:'🇱🇺 Lüksemburg', leagues:[{id:364,name:'National Division'}]},
+  {country:'🇲🇹 Malta', leagues:[{id:356,name:'Premier League'}]},
+  {country:'🇮🇪 İrlanda', leagues:[{id:357,name:'Premier Division'},{id:358,name:'First Division'}]},
+  {country:'🏴‍ Kuzey İrlanda', leagues:[{id:381,name:'NIFL Premiership'}]},
+  {country:'🏴‍ Galler', leagues:[{id:389,name:'Cymru Premier'}]},
+  {country:'🇬🇪 Gürcistan', leagues:[{id:255,name:'Erovnuli Liga'}]},
+  {country:'🇯🇵 Japonya', leagues:[{id:98,name:'J1 League'},{id:99,name:'J2 League'}]},
+  {country:'🇰🇷 Güney Kore', leagues:[{id:292,name:'K League 1'},{id:293,name:'K League 2'}]},
+  {country:'🇨🇳 Çin', leagues:[{id:169,name:'Super League'},{id:170,name:'China League One'}]},
+  {country:'🇮🇩 Endonezya', leagues:[{id:253,name:'Liga 1'}]},
+  {country:'🇦🇺 Avustralya', leagues:[{id:188,name:'A-League Men'}]},
+  {country:'🇸🇬 Singapur', leagues:[{id:382,name:'Singapore Premier League'}]},
+  {country:'🇲🇽 Meksika', leagues:[{id:262,name:'Liga MX'},{id:263,name:'Ascenso MX'}]},
+];
 
 function populateLeagueFilter(fixtures){
-const sel=document.getElementById('filterLeague');
-const current=sel.value;
-const all=[...new Set(fixtures.map(f=>f.league_name).filter(Boolean))];
-const big=BIG_LEAGUES.filter(l=>all.includes(l));
-const other=all.filter(l=>!BIG_LEAGUES.includes(l)).sort();
-let opts='<option value="">Tum Ligler ('+all.length+')</option>';
-if(big.length){opts+='<optgroup label="── Büyük Ligler ──">'+big.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('')+'</optgroup>';}
-if(other.length){opts+='<optgroup label="── Diger Ligler ──">'+other.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('')+'</optgroup>';}
-sel.innerHTML=opts;
+  const sel=document.getElementById('filterLeague');
+  const current=sel.value;
+  const allIds=new Set(fixtures.map(f=>f.league_id).filter(Boolean));
+  const allNames=new Set(fixtures.map(f=>f.league_name).filter(Boolean));
+  const usedIds=new Set();
+  let opts='<option value="">Tüm Ligler ('+allNames.size+')</option>';
+  LEAGUE_ID_MAP.forEach(({country,leagues})=>{
+    const found=leagues.filter(l=>allIds.has(l.id));
+    if(!found.length) return;
+    opts+='<optgroup label="'+country+'">';
+    found.forEach(l=>{
+      usedIds.add(l.id);
+      opts+='<option value="'+l.id+'"'+(String(l.id)===current?' selected':'')+'>  '+l.name+'</option>';
+    });
+    opts+='</optgroup>';
+  });
+  const usedIdArr=[...usedIds];
+  const other=fixtures.filter(f=>f.league_id&&!usedIdArr.includes(f.league_id));
+  const otherMap={};
+  other.forEach(f=>{otherMap[f.league_id]=f.league_name;});
+  const otherSorted=Object.entries(otherMap).sort((a,b)=>a[1].localeCompare(b[1]));
+  if(otherSorted.length){
+    opts+='<optgroup label="── Diğer Ligler ──">';
+    otherSorted.forEach(([id,name])=>{
+      opts+='<option value="'+id+'"'+(id===current?' selected':'')+'>'+name+'</option>';
+    });
+    opts+='</optgroup>';
+  }
+  sel.innerHTML=opts;
 }
 
 function renderFixtures(fixtures){
@@ -177,7 +245,7 @@ const signalOnly=document.getElementById('signalFilter').value==='signal';
 const league=document.getElementById('filterLeague').value;
 let filtered=fixtures.filter(f=>{
 const nameMatch=!search||f.home_team_name?.toLowerCase().includes(search)||f.away_team_name?.toLowerCase().includes(search);
-const leagueMatch=!league||f.league_name===league;
+const leagueMatch=!league||String(f.league_id)===String(league);
 const analysis=analysisCache[f.fixture_id];
 const hasSignal=analysis?.iy_signals?.length>0;
 if(signalOnly&&!hasSignal)return false;
