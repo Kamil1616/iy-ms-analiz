@@ -116,12 +116,13 @@ def compute_iy_over_probs(lambda_iy):
     def p_at_least(lam, k):
         return 1 - sum(poisson_prob(lam, i) for i in range(k))
     return {
+        "0.5": p_at_least(lambda_iy, 1),
         "1.5": p_at_least(lambda_iy, 2),
         "2.5": p_at_least(lambda_iy, 3),
         "3.5": p_at_least(lambda_iy, 4),
     }
 
-SIGNAL_THRESHOLDS = {"1.5": 0.90, "2.5": 0.80, "3.5": 0.70}
+SIGNAL_THRESHOLDS = {"0.5": 0.75, "1.5": 0.60, "2.5": 0.45, "3.5": 0.30}
 
 def get_iy_signals(iy_over_probs):
     signals = []
