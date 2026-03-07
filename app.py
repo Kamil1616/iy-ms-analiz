@@ -85,6 +85,8 @@ def api_analyze(fixture_id):
             home_stats_home=home_stats["home"],
             away_stats_general=away_stats["general"],
             away_stats_away=away_stats["away"],
+            home_stats=home_stats,
+            away_stats=away_stats,
         )
         cache.set(analysis_key, analysis)
         return jsonify({"fixture": fix, "analysis": analysis})
@@ -114,6 +116,8 @@ def api_analyze_all():
                     home_stats_home=home_stats["home"],
                     away_stats_general=away_stats["general"],
                     away_stats_away=away_stats["away"],
+                    home_stats=home_stats,
+                    away_stats=away_stats,
                 )
                 cache.set(analysis_key, analysis)
                 results.append({"fixture": fix, "analysis": analysis})
