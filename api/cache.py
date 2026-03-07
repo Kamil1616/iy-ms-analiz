@@ -1,34 +1,35 @@
 import json
 import os
-from datetime import datetime, timedelta
+import time
 
-CACHE_DIR = os.path.join(os.path.dirname(__file__), "../instance/cache")
-os.makedirs(CACHE_DIR, exist_ok=True)
+CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "instance", "cache")
 
-def _cache_path(key):
+def _ensure_dir():
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+def _path(key):
     safe = key.replace("/", "_").replace(":", "_")
-    return os.path.join(CACHE_DIR, f"{safe}.json")
+    return os.path.join(CACHE_DIR, safe + ".json")
 
 def get(key, ttl_minutes=60):
-    path = _cache_path(key)
-    if not os.path.exists(path):
-        return None
+    _ensure_dir()
     try:
-        with open(path) as f:
+        p = _path(key)
+        if not os.path.exists(p):
+            return None
+        with open(p, "r") as f:
             data = json.load(f)
-        saved_at = datetime.fromisoformat(data["saved_at"])
-        if datetime.now() - saved_at > timedelta(minutes=ttl_minutes):
+        if time.time() - data["ts"] > ttl_minutes * 60:
             return None
         return data["value"]
-    except Exception:
+    except:
         return None
 
 def set(key, value):
-    path = _cache_path(key)
-    with open(path, "w") as f:
-        json.dump({"saved_at": datetime.now().isoformat(), "value": value}, f)
-
-def invalidate(key):
-    path = _cache_path(key)
-    if os.path.exists(path):
-        os.remove(path)
+    _ensure_dir()
+    try:
+        p = _path(key)
+        with open(p, "w") as f:
+            json.dump({"ts": time.time(), "value": value}, f)
+    except:
+        pass
