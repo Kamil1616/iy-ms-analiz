@@ -87,6 +87,8 @@ header{background:linear-gradient(135deg,#0d0f14 0%,#111520 100%);border-bottom:
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.league-group-header:hover{border-color:var(--accent2)!important;}
 </style>
 </head>
 <body>
@@ -239,6 +241,64 @@ function populateLeagueFilter(fixtures){
   sel.innerHTML=opts;
 }
 
+const LIVE_STATUSES=['1H','2H','HT','ET','BT','P','INT','LIVE'];
+const FINISHED_STATUSES=['FT','AET','PEN'];
+
+// Büyük lig sırası (league_id bazlı)
+const BIG_LEAGUE_ORDER=[2,3,848,39,40,41,42,140,141,135,136,78,79,61,62,203,204,88,89,94,95,144,106,107,283,235,179,180,197,113,114,119,103,104,207,208,218,271,332,348,286,210,211,172,173,345,296,299,98,99,292,293,169,170,253,188,262,263];
+
+function getStatusOrder(status){
+  if(LIVE_STATUSES.includes(status)) return 0;
+  if(FINISHED_STATUSES.includes(status)) return 2;
+  return 1;
+}
+
+function getLeagueOrder(league_id){
+  const idx=BIG_LEAGUE_ORDER.indexOf(league_id);
+  return idx===-1?999:idx;
+}
+
+function getLiveMinute(f){
+  // status örn: "45+2", "78" gibi gelmez ama elapsed varsa kullanabiliriz
+  // date'e göre geçen süreyi hesapla
+  const started=new Date(f.date);
+  const now=new Date();
+  const mins=Math.floor((now-started)/60000);
+  return Math.min(mins,120);
+}
+
+function buildLeagueGroup(leagueName,leagueId,matches,statusOrder){
+  const isLive=statusOrder===0;
+  const isFin=statusOrder===2;
+  const liveCount=isLive?matches.length:0;
+  const groupId='lg-'+leagueId+'-'+statusOrder;
+  const dotColor=isLive?'var(--accent)':isFin?'var(--muted)':'var(--accent2)';
+
+  const dot=isLive?'<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulse 1.5s infinite"></span>':'<span style="width:8px;height:8px;border-radius:50%;background:'+dotColor+';flex-shrink:0;opacity:0.5"></span>';
+  const liveLabel=isLive?'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--accent);font-weight:700">'+liveCount+' CANLI</span>':'';
+  const header='<div class="league-group-header" onclick="toggleLeagueGroup(\'' +groupId+ '\')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:2px;cursor:pointer;user-select:none;">'
+    +dot
+    +'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1">'+leagueName+'</span>'
+    +liveLabel
+    +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">'+matches.length+' maç</span>'
+    +'<span style="color:var(--muted);font-size:12px;margin-left:4px">▼</span>'
+    +'</div>';
+
+  let cards='<div id="'+groupId+'" style="display:block">';
+  matches.forEach(f=>{cards+=buildFixtureCard(f);});
+  cards+='</div>';
+  return header+cards;
+}
+
+function toggleLeagueGroup(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.style.display=el.style.display==='none'?'block':'none';
+  const header=el.previousElementSibling;
+  const arrow=header?.querySelector('span:last-child');
+  if(arrow) arrow.textContent=el.style.display==='none'?'▶':'▼';
+}
+
 function renderFixtures(fixtures){
 const search=document.getElementById('filterTeam').value.toLowerCase();
 const signalOnly=document.getElementById('signalFilter').value==='signal';
@@ -247,13 +307,61 @@ let filtered=fixtures.filter(f=>{
 const nameMatch=!search||f.home_team_name?.toLowerCase().includes(search)||f.away_team_name?.toLowerCase().includes(search);
 const leagueMatch=!league||String(f.league_id)===String(league);
 const analysis=analysisCache[f.fixture_id];
-const hasSignal=analysis?.iy_signals?.length>0;
+const hasSignal=analysis?.iy_signals?.length>0||analysis?.ms_signals?.length>0;
 if(signalOnly&&!hasSignal)return false;
 return nameMatch&&leagueMatch;
 });
+
 const container=document.getElementById('fixtureList');
 if(filtered.length===0){container.innerHTML='<div class="no-fixtures">Mac bulunamadi</div>';updateCounter(0);return;}
-container.innerHTML=filtered.map(f=>buildFixtureCard(f)).join('');
+
+// 3 gruba ayır: canlı, başlayacak, biten
+const groups={0:[],1:[],2:[]};
+filtered.forEach(f=>groups[getStatusOrder(f.status)].push(f));
+
+// Her grup içinde: büyük lig önce, sonra saate göre
+[0,1,2].forEach(g=>{
+  groups[g].sort((a,b)=>{
+    const ligA=getLeagueOrder(a.league_id);
+    const ligB=getLeagueOrder(b.league_id);
+    if(ligA!==ligB) return ligA-ligB;
+    if(g===0){
+      // Canlıda: dakikaya göre (en çok oynanan önce)
+      return getLiveMinute(b)-getLiveMinute(a);
+    }
+    return new Date(a.date)-new Date(b.date);
+  });
+});
+
+const statusLabels={
+  0:'🔴 CANLI MAÇLAR',
+  1:'🕐 BAŞLAYACAK MAÇLAR',
+  2:'✅ BİTEN MAÇLAR'
+};
+
+let html='';
+[0,1,2].forEach(statusOrder=>{
+  const arr=groups[statusOrder];
+  if(!arr.length) return;
+
+  const liveCount=statusOrder===0?arr.length:0;
+  html+='<div style="padding:10px 4px 4px;font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:700;color:'+(statusOrder===0?'var(--accent)':statusOrder===1?'var(--accent2)':'var(--muted)')+';letter-spacing:1px;">'
+    +statusLabels[statusOrder]+(statusOrder===0?' ('+liveCount+')':'  ('+arr.length+')')+'</div>';
+
+  // Lig bazlı grupla
+  const ligMap={};
+  arr.forEach(f=>{
+    const key=f.league_id+'|'+(f.league_name||'Diger');
+    if(!ligMap[key]) ligMap[key]={name:f.league_name||'Diger',id:f.league_id,matches:[]};
+    ligMap[key].matches.push(f);
+  });
+
+  Object.values(ligMap).forEach(({name,id,matches})=>{
+    html+=buildLeagueGroup(name,id,matches,statusOrder);
+  });
+});
+
+container.innerHTML=html;
 updateCounter(filtered.length);
 }
 
@@ -269,7 +377,7 @@ return '<div class="fixture-card'+(hasSignal?' has-signal':'')+'" id="card-'+f.f
 +'<div class="fixture-header" onclick="toggleAnalysis('+f.fixture_id+')">'
 +'<div style="flex:1;min-width:0">'
 +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-+'<span class="league-badge">'+(f.league_name||'—')+'</span>'
+''
 +'<span class="match-time">'+time+'</span>'
 +(scoreStr?'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--accent);font-weight:600">'+scoreStr+'</span>':'')
 +'<span style="margin-left:auto;display:flex;gap:4px">'+signalHtml+'</span>'
