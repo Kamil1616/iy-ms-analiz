@@ -34,12 +34,11 @@ header{background:linear-gradient(135deg,#0d0f14 0%,#111520 100%);border-bottom:
 .fixture-card.has-signal{border-left:3px solid var(--accent)}
 .fixture-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;background:var(--card-bg);transition:background 0.15s}
 .fixture-header:hover{background:var(--surface2)}
-.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0}
-.teams{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
-.teams-row{display:flex;align-items:center;gap:8px}
-.team-name{font-size:14px;font-weight:500}
+.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.teams{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+.team-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
 .vs{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0}
-.match-time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.match-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0}
 .signal-badges{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
 .signal-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(0,255,135,0.12);color:var(--accent);border:1px solid rgba(0,255,135,0.3)}
 .expand-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0}
@@ -157,18 +156,11 @@ document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString(
 document.getElementById('fixtureList').innerHTML='<div class="error-msg">Veri alinamadi: '+e.message+'</div>';
 }}
 
-const BIG_LEAGUES=['UEFA Champions League','UEFA Europa League','UEFA Conference League','Premier League','La Liga','Serie A','Bundesliga','Ligue 1','S\u00fcper Lig','Eredivisie','Primeira Liga','Championship','Serie B','2. Bundesliga','Liga NOS'];
-
 function populateLeagueFilter(fixtures){
 const sel=document.getElementById('filterLeague');
 const current=sel.value;
-const all=[...new Set(fixtures.map(f=>f.league_name).filter(Boolean))];
-const big=BIG_LEAGUES.filter(l=>all.includes(l));
-const other=all.filter(l=>!BIG_LEAGUES.includes(l)).sort();
-let opts='<option value="">Tum Ligler ('+all.length+')</option>';
-if(big.length){opts+='<optgroup label="\u2500\u2500 B\u00fcy\u00fck Ligler \u2500\u2500">'+big.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('')+'</optgroup>';}
-if(other.length){opts+='<optgroup label="\u2500\u2500 Diger Ligler \u2500\u2500">'+other.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('')+'</optgroup>';}
-sel.innerHTML=opts;
+const leagues=[...new Set(fixtures.map(f=>f.league_name).filter(Boolean))].sort();
+sel.innerHTML='<option value="">Tum Ligler</option>'+leagues.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('');
 }
 
 function renderFixtures(fixtures){
@@ -199,35 +191,35 @@ const hasScore=f.home_goals!==null&&f.home_goals!==undefined&&f.away_goals!==nul
 const scoreStr=hasScore?String(f.home_goals)+'-'+String(f.away_goals):'';
 const timeDisplay=isLive&&f.elapsed?String(f.elapsed)+"'":(f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--');
 const timeColor=isLive?'var(--accent)':'var(--muted)';
-const livePrefix=isLive?'<span style="color:var(--accent)">● </span>':'';
+const dot=isLive?'<span style="color:var(--accent)">● </span>':'';
 const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('')+msSignals.map(s=>'<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>').join('');
 const fid=f.fixture_id;
-const el=document.createElement('div');
-el.className='fixture-card'+(hasSignal?' has-signal':'');
-el.id='card-'+fid;
-el.innerHTML='<div class="fixture-header">'
-+'<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden">'
+const div=document.createElement('div');
+div.className='fixture-card'+(hasSignal?' has-signal':'');
+div.id='card-'+fid;
+div.innerHTML=
+'<div class="fixture-header">'
++'<div style="display:flex;align-items:center;gap:6px;overflow:hidden;flex-wrap:nowrap">'
 +'<span class="league-badge" style="flex-shrink:0">'+(f.league_name||'—')+'</span>'
-+'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:'+timeColor+';flex-shrink:0;white-space:nowrap">'+livePrefix+timeDisplay+'</span>'
-+(scoreStr?'<span style="font-family:IBM Plex Mono,monospace;font-size:13px;color:var(--accent);font-weight:700;flex-shrink:0;white-space:nowrap">'+scoreStr+'</span>':'')
-+'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:4px">'+(f.home_team_name||'?')+'</span>'
-+'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);flex-shrink:0;margin:0 4px">vs</span>'
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:'+timeColor+';flex-shrink:0;white-space:nowrap">'+dot+timeDisplay+'</span>'
++(scoreStr?'<span style="font-family:IBM Plex Mono,monospace;font-size:13px;color:var(--accent);font-weight:700;flex-shrink:0;white-space:nowrap;margin:0 2px">'+scoreStr+'</span>':'')
++'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.home_team_name||'?')+'</span>'
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);flex-shrink:0;padding:0 4px">vs</span>'
 +'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+(f.away_team_name||'?')+'</span>'
-+(signalHtml?'<span style="flex-shrink:0;margin-left:6px;display:flex;gap:3px">'+signalHtml+'</span>':'')
++(signalHtml?'<span style="flex-shrink:0;margin-left:4px;display:flex;gap:3px">'+signalHtml+'</span>':'')
 +'</div>'
 +'</div>'
 +'<div class="analysis-panel" id="panel-'+fid+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>';
-el.querySelector('.fixture-header').addEventListener('click',function(){toggleAnalysis(fid,currentDate);});
-return el.outerHTML;
+div.querySelector('.fixture-header').addEventListener('click',function(){toggleAnalysis(fid,currentDate);});
+return div.outerHTML;
 }
 
 async function toggleAnalysis(fixtureId,date){
-const panel=document.getElementById('panel-'+fixtureId);
+var panel=document.getElementById('panel-'+fixtureId);
 if(!panel)return;
-if(!panel.classList.contains('open')){
-if(!analysisCache[fixtureId]){await loadAnalysis(fixtureId,date||currentDate,true);}
-else{panel.classList.add('open');}
-}else{panel.classList.remove('open');}
+if(panel.classList.contains('open')){panel.classList.remove('open');return;}
+if(analysisCache[fixtureId]){panel.innerHTML=buildAnalysisHtml({fixture_id:fixtureId},analysisCache[fixtureId]);panel.classList.add('open');}
+else{loadAnalysis(fixtureId,date||currentDate);}
 }
 
 async function loadAnalysis(fixtureId,date,autoOpen=false){
@@ -268,7 +260,7 @@ const barW=Math.min(100,pct*3.5);
 const divClass=row.divider?'divider':'';
 const color=pct>20?'var(--accent)':pct>12?'var(--accent2)':'var(--text)';
 return '<tr class="'+divClass+' rank-'+row.rank+'">'
-+'<td style="color:var(--muted);font-family:IBM Plex Mono,monospace;font-size:11px;width:24px">'+row.rank+'</td>'
++'<td style="color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px;width:24px">'+row.rank+'</td>'
 +'<td class="selection-cell">'+row.selection+'</td>'
 +'<td class="prob-cell" style="color:'+color+'">%'+pct+'</td>'
 +'<td><div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-bar-fill" style="width:'+barW+'%"></div></div></div></td>'
@@ -292,24 +284,24 @@ return '<div class="iy-market-row">'
 +'</div>';
 }).join('');
 const noSignal=signals.length===0?'<div class="iy-no-signal">Bu macta IY Alt/Ust icin guclu sinyal uretilemedi.</div>':'';
-const msResults=analysis.ms_results||[];
-const msSignals=analysis.ms_signals||[];
-const msHtml=msResults.length?('<div class="module-title">MODUL C \u2014 MA\u00c7 SONUCU (MS)</div>'
-+'<div style="display:flex;gap:12px;margin-bottom:16px">'
-+msResults.map(r=>{
-const color=r.probability>50?'var(--accent)':r.probability>35?'var(--accent2)':'var(--text)';
-const isSig=msSignals.find(s=>s.outcome===r.outcome);
-return '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">'
-+'<div style="font-family:IBM Plex Mono,monospace;font-size:22px;font-weight:700;color:'+color+'">'+r.outcome+'</div>'
-+'<div style="font-size:20px;font-weight:700;color:'+color+';margin:4px 0">%'+r.probability+'</div>'
-+'<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">Oran: '+r.model_odd+'</div>'
-+(isSig?'<div style="margin-top:6px;font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700">SINYAL</div>':'')
-+'</div>';
-}).join('')+'</div>'):'';
-return lambdaHtml+msHtml
+const msR=analysis.ms_results||[];
+const msSig=analysis.ms_signals||[];
+const modC=msR.length?'<div class="module-title">MODUL C — MAÇ SONUCU (MS)</div>'
++'<div style="display:flex;gap:10px;margin-bottom:16px">'
++msR.map(function(r){
+  var col=r.probability>50?'var(--accent)':r.probability>35?'var(--accent2)':'var(--text)';
+  var sig=msSig.find(function(s){return s.outcome===r.outcome;});
+  return '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">'
+  +'<div style="font-family:IBM Plex Mono,monospace;font-size:20px;font-weight:700;color:'+col+'">'+r.outcome+'</div>'
+  +'<div style="font-size:18px;font-weight:700;color:'+col+';margin:4px 0">%'+r.probability+'</div>'
+  +'<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted)">Oran: '+r.model_odd+'</div>'
+  +(sig?'<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700;margin-top:4px">SINYAL</div>':'')
+  +'</div>';
+}).join('')+'</div>':'';
+return lambdaHtml+modC
 +'<div class="analysis-grid">'
-+'<div><div class="module-title">MODUL A \u2014 IY/MS</div>'+iymsHtml+'</div>'
-+'<div><div class="module-title">MODUL B \u2014 IY ALT/UST</div><div>'+iyOverHtml+noSignal+'</div></div>'
++'<div><div class="module-title">MODUL A — IY/MS</div>'+iymsHtml+'</div>'
++'<div><div class="module-title">MODUL B — IY ALT/ÜST</div><div>'+iyOverHtml+noSignal+'</div></div>'
 +'</div>';
 }
 
@@ -339,6 +331,3 @@ loadFixtures();
 </script>
 </body>
 </html>
-"
-    },
-    "message": "index.html lig filtresi ile tam versiyon
