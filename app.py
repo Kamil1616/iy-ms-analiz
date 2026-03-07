@@ -31,6 +31,7 @@ def get_fixtures_for_date(date_str):
             "fixture_id": fix.get("id"),
             "date": fix.get("date"),
             "status": fix.get("status", {}).get("short"),
+            "elapsed": fix.get("status", {}).get("elapsed"),
             "home_team_id": teams.get("home", {}).get("id"),
             "home_team_name": teams.get("home", {}).get("name"),
             "away_team_id": teams.get("away", {}).get("id"),
