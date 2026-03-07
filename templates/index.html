@@ -32,11 +32,12 @@ header{background:linear-gradient(135deg,#0d0f14 0%,#111520 100%);border-bottom:
 .fixture-card{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;transition:border-color 0.2s}
 .fixture-card:hover{border-color:#2a2f3d}
 .fixture-card.has-signal{border-left:3px solid var(--accent)}
-.fixture-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;background:var(--card-bg);transition:background 0.15s}
+.fixture-card.live-card{border-left:3px solid var(--accent);background:#0d1a12}
+.fixture-header{padding:12px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;background:var(--card-bg);transition:background 0.15s}
 .fixture-header:hover{background:var(--surface2)}
-.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
-.teams{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
-.team-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.teams{flex:1;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
+.team-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .vs{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0}
 .match-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0}
 .signal-badges{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
@@ -254,20 +255,35 @@ updateCounter(filtered.length);
 function buildFixtureCard(f){
 const analysis=analysisCache[f.fixture_id];
 const signals=analysis?.iy_signals||[];
-const hasSignal=signals.length>0;
-const scoreStr=(f.home_goals!==null&&f.away_goals!==null)?f.home_goals+' - '+f.away_goals:'vs';
-const time=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--';
-const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('');
-return '<div class="fixture-card'+(hasSignal?' has-signal':'')+'" id="card-'+f.fixture_id+'">'
+const msSignals=analysis?.ms_signals||[];
+const hasSignal=signals.length>0||msSignals.length>0;
+const LIVE_ST=['1H','2H','HT','ET','BT','P','INT','LIVE'];
+const FIN_ST=['FT','AET','PEN'];
+const st=f.status||f.fixture_status||'';
+const isLive=LIVE_ST.includes(st);
+const isFin=FIN_ST.includes(st);
+const hasScore=f.home_goals!==null&&f.home_goals!==undefined&&f.away_goals!==null&&f.away_goals!==undefined;
+const scoreStr=hasScore?(String(f.home_goals)+' - '+String(f.away_goals)):(isLive?'CANLI':'vs');
+const scoreStyle=isLive?'color:var(--accent);font-weight:700;font-size:15px':isFin?'color:var(--muted)':'color:var(--text)';
+const timeStyle=isLive?'color:var(--accent);font-weight:700':'color:var(--muted)';
+const timeStr=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--';
+const time=isLive?(f.elapsed?f.elapsed+"'":timeStr):timeStr;
+const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('')
++msSignals.map(s=>'<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>').join('');
+const cardClass='fixture-card'+(hasSignal?' has-signal':'')+(isLive?' live-card':'');
+const homeName=f.home_team_name||'?';
+const awayName=f.away_team_name||'?';
+return '<div class="'+cardClass+'" id="card-'+f.fixture_id+'">'
 +'<div class="fixture-header" onclick="toggleAnalysis('+f.fixture_id+')">'
-+'<div class="league-badge" title="'+(f.league_name||'')+'">'+(f.league_name||'\u2014')+'</div>'
-+'<div class="teams"><span class="team-name">'+(f.home_team_name||'?')+'</span>'
-+'<span class="vs">'+scoreStr+'</span>'
-+'<span class="team-name">'+(f.away_team_name||'?')+'</span></div>'
++'<div class="league-badge" title="'+(f.league_name||'')+'">'+( f.league_name||'—')+'</div>'
++'<div class="teams">'
++'<span class="team-name">'+homeName+'</span>'
++'<span class="vs" style="'+scoreStyle+'">'+scoreStr+'</span>'
++'<span class="team-name">'+awayName+'</span>'
++'</div>'
 +'<div class="signal-badges">'+signalHtml+'</div>'
-+'<span class="match-time">'+time+'</span>'
-+'<button class="expand-btn" id="expbtn-'+f.fixture_id+'" onclick="event.stopPropagation();loadAnalysis('+f.fixture_id+',\''+currentDate+'\')">'
-+(analysis?'Analiz':'Analiz Et')+'</button>'
++'<span class="match-time" style="'+timeStyle+'">'+time+'</span>'
++'<button class="expand-btn" id="expbtn-'+f.fixture_id+'" onclick="event.stopPropagation();loadAnalysis('+f.fixture_id+',\''+currentDate+'\')">'+(analysis?'Analiz':'Analiz Et')+'</button>'
 +'</div>'
 +'<div class="analysis-panel" id="panel-'+f.fixture_id+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>'
 +'</div>';
