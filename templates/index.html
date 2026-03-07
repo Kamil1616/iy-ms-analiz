@@ -34,12 +34,11 @@ header{background:linear-gradient(135deg,#0d0f14 0%,#111520 100%);border-bottom:
 .fixture-card.has-signal{border-left:3px solid var(--accent)}
 .fixture-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;background:var(--card-bg);transition:background 0.15s}
 .fixture-header:hover{background:var(--surface2)}
-.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0}
-.teams{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
-.teams-row{display:flex;align-items:center;gap:8px}
-.team-name{font-size:14px;font-weight:500}
+.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.teams{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+.team-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
 .vs{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0}
-.match-time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.match-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0}
 .signal-badges{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
 .signal-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(0,255,135,0.12);color:var(--accent);border:1px solid rgba(0,255,135,0.3)}
 .expand-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0}
@@ -157,144 +156,81 @@ document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString(
 document.getElementById('fixtureList').innerHTML='<div class="error-msg">Veri alinamadi: '+e.message+'</div>';
 }}
 
-// league_id bazlı filtre - API-Football ID'leri
-const LEAGUE_ID_MAP = [
-  {country:'🏆 Avrupa Kupaları', leagues:[{id:2,name:'UEFA Champions League'},{id:3,name:'UEFA Europa League'},{id:848,name:'UEFA Conference League'}]},
-  {country:'🏴‍ İngiltere', leagues:[{id:39,name:'Premier League'},{id:40,name:'Championship'},{id:41,name:'League One'},{id:42,name:'League Two'}]},
-  {country:'🇪🇸 İspanya', leagues:[{id:140,name:'La Liga'},{id:141,name:'La Liga2'}]},
-  {country:'🇮🇹 İtalya', leagues:[{id:135,name:'Serie A'},{id:136,name:'Serie B'}]},
-  {country:'🇩🇪 Almanya', leagues:[{id:78,name:'Bundesliga'},{id:79,name:'2. Bundesliga'}]},
-  {country:'🇫🇷 Fransa', leagues:[{id:61,name:'Ligue 1'},{id:62,name:'Ligue 2'}]},
-  {country:'🇹🇷 Türkiye', leagues:[{id:203,name:'Süper Lig'},{id:204,name:'TFF 1. Lig'}]},
-  {country:'🇳🇱 Hollanda', leagues:[{id:88,name:'Eredivisie'},{id:89,name:'Eerste Divisie'}]},
-  {country:'🇵🇹 Portekiz', leagues:[{id:94,name:'Primeira Liga'},{id:95,name:'Segunda Liga'}]},
-  {country:'🇧🇪 Belçika', leagues:[{id:144,name:'First Division A'}]},
-  {country:'🇦🇹 Avusturya', leagues:[{id:218,name:'Austrian Football Bundesliga'}]},
-  {country:'🇵🇱 Polonya', leagues:[{id:106,name:'Ekstraklasa'},{id:107,name:'I Liga'}]},
-  {country:'🇷🇴 Romanya', leagues:[{id:283,name:'Liga I'}]},
-  {country:'🇷🇺 Rusya', leagues:[{id:235,name:'Premier League'}]},
-  {country:'🏴‍ İskoçya', leagues:[{id:179,name:'Premiership'},{id:180,name:'Championship'}]},
-  {country:'🇬🇷 Yunanistan', leagues:[{id:197,name:'Super League'}]},
-  {country:'🇸🇪 İsveç', leagues:[{id:113,name:'Allsvenskan'},{id:114,name:'Superettan'}]},
-  {country:'🇩🇰 Danimarka', leagues:[{id:119,name:'Superliga'}]},
-  {country:'🇳🇴 Norveç', leagues:[{id:103,name:'Eliteserien'},{id:104,name:'1. divisjon'}]},
-  {country:'🇨🇭 İsviçre', leagues:[{id:207,name:'Super League'},{id:208,name:'Challenge League'}]},
-  {country:'🇭🇺 Macaristan', leagues:[{id:271,name:'OTP Bank Liga'}]},
-  {country:'🇸🇰 Slovakya', leagues:[{id:332,name:'Super Liga'}]},
-  {country:'🇸🇮 Slovenya', leagues:[{id:348,name:'PrvaLiga'}]},
-  {country:'🇷🇸 Sırbistan', leagues:[{id:286,name:'Super Liga'}]},
-  {country:'🇭🇷 Hırvatistan', leagues:[{id:210,name:'HNL'},{id:211,name:'Prva NL'}]},
-  {country:'🇧🇬 Bulgaristan', leagues:[{id:172,name:'First Professional League'},{id:173,name:'Second Professional League'}]},
-  {country:'🇨🇿 Çekya', leagues:[{id:345,name:'Czech Liga'}]},
-  {country:'🇲🇪 Karadağ', leagues:[{id:296,name:'Prva CFL'}]},
-  {country:'🇲🇰 Kuzey Makedonya', leagues:[{id:299,name:'1. MFL'}]},
-  {country:'🇱🇻 Letonya', leagues:[{id:371,name:'Virsliga'}]},
-  {country:'🇱🇹 Litvanya', leagues:[{id:365,name:'A Lyga'}]},
-  {country:'🇪🇪 Estonya', leagues:[{id:322,name:'Meistriliiga'},{id:323,name:'Esiliiga'}]},
-  {country:'🇫🇮 Finlandiya', leagues:[{id:244,name:'Veikkausliiga'}]},
-  {country:'🇱🇺 Lüksemburg', leagues:[{id:364,name:'National Division'}]},
-  {country:'🇲🇹 Malta', leagues:[{id:356,name:'Premier League'}]},
-  {country:'🇮🇪 İrlanda', leagues:[{id:357,name:'Premier Division'},{id:358,name:'First Division'}]},
-  {country:'🏴‍ Kuzey İrlanda', leagues:[{id:381,name:'NIFL Premiership'}]},
-  {country:'🏴‍ Galler', leagues:[{id:389,name:'Cymru Premier'}]},
-  {country:'🇬🇪 Gürcistan', leagues:[{id:255,name:'Erovnuli Liga'}]},
-  {country:'🇯🇵 Japonya', leagues:[{id:98,name:'J1 League'},{id:99,name:'J2 League'}]},
-  {country:'🇰🇷 Güney Kore', leagues:[{id:292,name:'K League 1'},{id:293,name:'K League 2'}]},
-  {country:'🇨🇳 Çin', leagues:[{id:169,name:'Super League'},{id:170,name:'China League One'}]},
-  {country:'🇮🇩 Endonezya', leagues:[{id:253,name:'Liga 1'}]},
-  {country:'🇦🇺 Avustralya', leagues:[{id:188,name:'A-League Men'}]},
-  {country:'🇸🇬 Singapur', leagues:[{id:382,name:'Singapore Premier League'}]},
-  {country:'🇲🇽 Meksika', leagues:[{id:262,name:'Liga MX'},{id:263,name:'Ascenso MX'}]},
+const LEAGUE_ID_MAP=[
+{country:'🏆 Avrupa Kupaları',leagues:[{id:2,name:'UEFA Champions League'},{id:3,name:'UEFA Europa League'},{id:848,name:'UEFA Conference League'}]},
+{country:'İngiltere',leagues:[{id:39,name:'Premier League'},{id:40,name:'Championship'},{id:41,name:'League One'},{id:42,name:'League Two'}]},
+{country:'İspanya',leagues:[{id:140,name:'La Liga'},{id:141,name:'La Liga2'}]},
+{country:'İtalya',leagues:[{id:135,name:'Serie A'},{id:136,name:'Serie B'}]},
+{country:'Almanya',leagues:[{id:78,name:'Bundesliga'},{id:79,name:'2. Bundesliga'}]},
+{country:'Fransa',leagues:[{id:61,name:'Ligue 1'},{id:62,name:'Ligue 2'}]},
+{country:'Türkiye',leagues:[{id:203,name:'Süper Lig'},{id:204,name:'TFF 1. Lig'}]},
+{country:'Hollanda',leagues:[{id:88,name:'Eredivisie'},{id:89,name:'Eerste Divisie'}]},
+{country:'Portekiz',leagues:[{id:94,name:'Primeira Liga'},{id:95,name:'Segunda Liga'}]},
+{country:'Belçika',leagues:[{id:144,name:'First Division A'}]},
+{country:'Avusturya',leagues:[{id:218,name:'Austrian Football Bundesliga'}]},
+{country:'Polonya',leagues:[{id:106,name:'Ekstraklasa'},{id:107,name:'I Liga'}]},
+{country:'Romanya',leagues:[{id:283,name:'Liga I'}]},
+{country:'Rusya',leagues:[{id:235,name:'Premier League'}]},
+{country:'İskoçya',leagues:[{id:179,name:'Premiership'},{id:180,name:'Championship'}]},
+{country:'Yunanistan',leagues:[{id:197,name:'Super League'}]},
+{country:'İsveç',leagues:[{id:113,name:'Allsvenskan'},{id:114,name:'Superettan'}]},
+{country:'Danimarka',leagues:[{id:119,name:'Superliga'}]},
+{country:'Norveç',leagues:[{id:103,name:'Eliteserien'},{id:104,name:'1. divisjon'}]},
+{country:'İsviçre',leagues:[{id:207,name:'Super League'},{id:208,name:'Challenge League'}]},
+{country:'Macaristan',leagues:[{id:271,name:'OTP Bank Liga'}]},
+{country:'Slovakya',leagues:[{id:332,name:'Super Liga'}]},
+{country:'Slovenya',leagues:[{id:348,name:'PrvaLiga'}]},
+{country:'Sırbistan',leagues:[{id:286,name:'Super Liga'}]},
+{country:'Hırvatistan',leagues:[{id:210,name:'HNL'},{id:211,name:'Prva NL'}]},
+{country:'Bulgaristan',leagues:[{id:172,name:'First Professional League'},{id:173,name:'Second Professional League'}]},
+{country:'Çekya',leagues:[{id:345,name:'Czech Liga'}]},
+{country:'Karadağ',leagues:[{id:296,name:'Prva CFL'}]},
+{country:'K. Makedonya',leagues:[{id:299,name:'1. MFL'}]},
+{country:'Letonya',leagues:[{id:371,name:'Virsliga'}]},
+{country:'Litvanya',leagues:[{id:365,name:'A Lyga'}]},
+{country:'Estonya',leagues:[{id:322,name:'Meistriliiga'},{id:323,name:'Esiliiga'}]},
+{country:'Finlandiya',leagues:[{id:244,name:'Veikkausliiga'}]},
+{country:'Lüksemburg',leagues:[{id:364,name:'National Division'}]},
+{country:'Malta',leagues:[{id:356,name:'Premier League'}]},
+{country:'İrlanda',leagues:[{id:357,name:'Premier Division'},{id:358,name:'First Division'}]},
+{country:'Kuzey İrlanda',leagues:[{id:381,name:'NIFL Premiership'}]},
+{country:'Galler',leagues:[{id:389,name:'Cymru Premier'}]},
+{country:'Gürcistan',leagues:[{id:255,name:'Erovnuli Liga'}]},
+{country:'Japonya',leagues:[{id:98,name:'J1 League'},{id:99,name:'J2 League'}]},
+{country:'G. Kore',leagues:[{id:292,name:'K League 1'},{id:293,name:'K League 2'}]},
+{country:'Çin',leagues:[{id:169,name:'Super League'},{id:170,name:'China League One'}]},
+{country:'Endonezya',leagues:[{id:253,name:'Liga 1'}]},
+{country:'Avustralya',leagues:[{id:188,name:'A-League Men'}]},
+{country:'Singapur',leagues:[{id:382,name:'Singapore Premier League'}]},
+{country:'Meksika',leagues:[{id:262,name:'Liga MX'},{id:263,name:'Ascenso MX'}]},
 ];
 
 function populateLeagueFilter(fixtures){
-  const sel=document.getElementById('filterLeague');
-  const current=sel.value;
-  const allIds=new Set(fixtures.map(f=>f.league_id).filter(Boolean));
-  const allNames=new Set(fixtures.map(f=>f.league_name).filter(Boolean));
-  const usedIds=new Set();
-  let opts='<option value="">Tüm Ligler ('+allNames.size+')</option>';
-  LEAGUE_ID_MAP.forEach(({country,leagues})=>{
-    const found=leagues.filter(l=>allIds.has(l.id));
-    if(!found.length) return;
-    opts+='<optgroup label="'+country+'">';
-    found.forEach(l=>{
-      usedIds.add(l.id);
-      opts+='<option value="'+l.id+'"'+(String(l.id)===current?' selected':'')+'>  '+l.name+'</option>';
-    });
-    opts+='</optgroup>';
-  });
-  const usedIdArr=[...usedIds];
-  const other=fixtures.filter(f=>f.league_id&&!usedIdArr.includes(f.league_id));
-  const otherMap={};
-  other.forEach(f=>{otherMap[f.league_id]=f.league_name;});
-  const otherSorted=Object.entries(otherMap).sort((a,b)=>a[1].localeCompare(b[1]));
-  if(otherSorted.length){
-    opts+='<optgroup label="── Diğer Ligler ──">';
-    otherSorted.forEach(([id,name])=>{
-      opts+='<option value="'+id+'"'+(id===current?' selected':'')+'>'+name+'</option>';
-    });
-    opts+='</optgroup>';
-  }
-  sel.innerHTML=opts;
+const sel=document.getElementById('filterLeague');
+const current=sel.value;
+const allIds=new Set(fixtures.map(f=>f.league_id).filter(Boolean));
+const allNames=new Set(fixtures.map(f=>f.league_name).filter(Boolean));
+const usedIds=new Set();
+let opts='<option value="">Tüm Ligler ('+allNames.size+')</option>';
+LEAGUE_ID_MAP.forEach(({country,leagues})=>{
+const found=leagues.filter(l=>allIds.has(l.id));
+if(!found.length)return;
+opts+='<optgroup label="'+country+'">';
+found.forEach(l=>{
+usedIds.add(l.id);
+opts+='<option value="'+l.id+'"'+(String(l.id)===current?' selected':'')+'>  '+l.name+'</option>';
+});
+opts+='</optgroup>';
+});
+const otherMap={};
+fixtures.filter(f=>f.league_id&&!usedIds.has(f.league_id)).forEach(f=>{otherMap[f.league_id]=f.league_name;});
+const otherSorted=Object.entries(otherMap).sort((a,b)=>a[1].localeCompare(b[1]));
+if(otherSorted.length){
+opts+='<optgroup label="── Diğer Ligler ──">';
+otherSorted.forEach(([id,name])=>{opts+='<option value="'+id+'"'+(id===current?' selected':'')+'>'+name+'</option>';});
+opts+='</optgroup>';
 }
-
-const LIVE_STATUSES=['1H','2H','HT','ET','BT','P','INT','LIVE'];
-const FINISHED_STATUSES=['FT','AET','PEN'];
-
-// Büyük lig sırası (league_id bazlı)
-const BIG_LEAGUE_ORDER=[2,3,848,39,40,41,42,140,141,135,136,78,79,61,62,203,204,88,89,94,95,144,106,107,283,235,179,180,197,113,114,119,103,104,207,208,218,271,332,348,286,210,211,172,173,345,296,299,98,99,292,293,169,170,253,188,262,263];
-
-function getStatusOrder(status){
-  if(LIVE_STATUSES.includes(status)) return 0;
-  if(FINISHED_STATUSES.includes(status)) return 2;
-  return 1;
-}
-
-function getLeagueOrder(league_id){
-  const idx=BIG_LEAGUE_ORDER.indexOf(league_id);
-  return idx===-1?999:idx;
-}
-
-function getLiveMinute(f){
-  // status örn: "45+2", "78" gibi gelmez ama elapsed varsa kullanabiliriz
-  // date'e göre geçen süreyi hesapla
-  const started=new Date(f.date);
-  const now=new Date();
-  const mins=Math.floor((now-started)/60000);
-  return Math.min(mins,120);
-}
-
-function buildLeagueGroup(leagueName,leagueId,matches,statusOrder){
-  const isLive=statusOrder===0;
-  const isFin=statusOrder===2;
-  const liveCount=isLive?matches.length:0;
-  const groupId='lg-'+leagueId+'-'+statusOrder;
-  const dotColor=isLive?'var(--accent)':isFin?'var(--muted)':'var(--accent2)';
-
-  const dot=isLive?'<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulse 1.5s infinite"></span>':'<span style="width:8px;height:8px;border-radius:50%;background:'+dotColor+';flex-shrink:0;opacity:0.5"></span>';
-  const liveLabel=isLive?'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--accent);font-weight:700">'+liveCount+' CANLI</span>':'';
-  const header='<div class="league-group-header" onclick="toggleLeagueGroup(\'' +groupId+ '\')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:2px;cursor:pointer;user-select:none;">'
-    +dot
-    +'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1">'+leagueName+'</span>'
-    +liveLabel
-    +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">'+matches.length+' maç</span>'
-    +'<span style="color:var(--muted);font-size:12px;margin-left:4px">▼</span>'
-    +'</div>';
-
-  let cards='<div id="'+groupId+'" style="display:block">';
-  matches.forEach(f=>{cards+=buildFixtureCard(f);});
-  cards+='</div>';
-  return header+cards;
-}
-
-function toggleLeagueGroup(id){
-  const el=document.getElementById(id);
-  if(!el) return;
-  el.style.display=el.style.display==='none'?'block':'none';
-  const header=el.previousElementSibling;
-  const arrow=header?.querySelector('span:last-child');
-  if(arrow) arrow.textContent=el.style.display==='none'?'▶':'▼';
+sel.innerHTML=opts;
 }
 
 function renderFixtures(fixtures){
@@ -305,61 +241,13 @@ let filtered=fixtures.filter(f=>{
 const nameMatch=!search||f.home_team_name?.toLowerCase().includes(search)||f.away_team_name?.toLowerCase().includes(search);
 const leagueMatch=!league||String(f.league_id)===String(league);
 const analysis=analysisCache[f.fixture_id];
-const hasSignal=analysis?.iy_signals?.length>0||analysis?.ms_signals?.length>0;
+const hasSignal=analysis?.iy_signals?.length>0;
 if(signalOnly&&!hasSignal)return false;
 return nameMatch&&leagueMatch;
 });
-
 const container=document.getElementById('fixtureList');
 if(filtered.length===0){container.innerHTML='<div class="no-fixtures">Mac bulunamadi</div>';updateCounter(0);return;}
-
-// 3 gruba ayır: canlı, başlayacak, biten
-const groups={0:[],1:[],2:[]};
-filtered.forEach(f=>groups[getStatusOrder(f.status)].push(f));
-
-// Her grup içinde: büyük lig önce, sonra saate göre
-[0,1,2].forEach(g=>{
-  groups[g].sort((a,b)=>{
-    const ligA=getLeagueOrder(a.league_id);
-    const ligB=getLeagueOrder(b.league_id);
-    if(ligA!==ligB) return ligA-ligB;
-    if(g===0){
-      // Canlıda: dakikaya göre (en çok oynanan önce)
-      return getLiveMinute(b)-getLiveMinute(a);
-    }
-    return new Date(a.date)-new Date(b.date);
-  });
-});
-
-const statusLabels={
-  0:'🔴 CANLI MAÇLAR',
-  1:'🕐 BAŞLAYACAK MAÇLAR',
-  2:'✅ BİTEN MAÇLAR'
-};
-
-let html='';
-[0,1,2].forEach(statusOrder=>{
-  const arr=groups[statusOrder];
-  if(!arr.length) return;
-
-  const liveCount=statusOrder===0?arr.length:0;
-  html+='<div style="padding:10px 4px 4px;font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:700;color:'+(statusOrder===0?'var(--accent)':statusOrder===1?'var(--accent2)':'var(--muted)')+';letter-spacing:1px;">'
-    +statusLabels[statusOrder]+(statusOrder===0?' ('+liveCount+')':'  ('+arr.length+')')+'</div>';
-
-  // Lig bazlı grupla
-  const ligMap={};
-  arr.forEach(f=>{
-    const key=f.league_id+'|'+(f.league_name||'Diger');
-    if(!ligMap[key]) ligMap[key]={name:f.league_name||'Diger',id:f.league_id,matches:[]};
-    ligMap[key].matches.push(f);
-  });
-
-  Object.values(ligMap).forEach(({name,id,matches})=>{
-    html+=buildLeagueGroup(name,id,matches,statusOrder);
-  });
-});
-
-container.innerHTML=html;
+container.innerHTML=filtered.map(f=>buildFixtureCard(f)).join('');
 updateCounter(filtered.length);
 }
 
@@ -367,30 +255,19 @@ function buildFixtureCard(f){
 const analysis=analysisCache[f.fixture_id];
 const signals=analysis?.iy_signals||[];
 const hasSignal=signals.length>0;
-const scoreStr=(f.home_goals!==null&&f.away_goals!==null)?f.home_goals+' - '+f.away_goals:'';
+const scoreStr=(f.home_goals!==null&&f.away_goals!==null)?f.home_goals+' - '+f.away_goals:'vs';
 const time=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--';
 const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('');
-const statusDot=analysis?'<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px"></span>':'';
 return '<div class="fixture-card'+(hasSignal?' has-signal':'')+'" id="card-'+f.fixture_id+'">'
 +'<div class="fixture-header" onclick="toggleAnalysis('+f.fixture_id+')">'
-+'<div style="flex:1;min-width:0">'
-+'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-''
++'<div class="league-badge" title="'+(f.league_name||'')+'">'+(f.league_name||'\u2014')+'</div>'
++'<div class="teams"><span class="team-name">'+(f.home_team_name||'?')+'</span>'
++'<span class="vs">'+scoreStr+'</span>'
++'<span class="team-name">'+(f.away_team_name||'?')+'</span></div>'
++'<div class="signal-badges">'+signalHtml+'</div>'
 +'<span class="match-time">'+time+'</span>'
-+(scoreStr?'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--accent);font-weight:600">'+scoreStr+'</span>':'')
-+'<span style="margin-left:auto;display:flex;gap:4px">'+signalHtml+'</span>'
-+'</div>'
-+'<div style="display:flex;align-items:center;gap:12px">'
-+'<span style="font-size:15px;font-weight:600;color:var(--text)">'+(f.home_team_name||'?')+'</span>'
-+'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--muted)">vs</span>'
-+'<span style="font-size:15px;font-weight:600;color:var(--text)">'+(f.away_team_name||'?')+'</span>'
-+'</div>'
-+'</div>'
-+'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">'
-+statusDot
 +'<button class="expand-btn" id="expbtn-'+f.fixture_id+'" onclick="event.stopPropagation();loadAnalysis('+f.fixture_id+',\''+currentDate+'\')">'
-+(analysis?'▼ Analiz':'Analiz Et')+'</button>'
-+'</div>'
++(analysis?'Analiz':'Analiz Et')+'</button>'
 +'</div>'
 +'<div class="analysis-panel" id="panel-'+f.fixture_id+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>'
 +'</div>';
@@ -432,10 +309,10 @@ const iyms=analysis.iyms_results||[];
 const signals=analysis.iy_signals||[];
 const iyOver=analysis.iy_over_probs||{};
 const lambdaHtml='<div class="lambda-row">'
-+'<div class="lambda-chip">λ Ev: <span>'+analysis.lambda_home+'</span></div>'
-+'<div class="lambda-chip">λ Dep: <span>'+analysis.lambda_away+'</span></div>'
-+'<div class="lambda-chip">λ Total: <span>'+analysis.lambda_total+'</span></div>'
-+'<div class="lambda-chip">λ IY: <span>'+analysis.lambda_iy+'</span></div>'
++'<div class="lambda-chip">\u03bb Ev: <span>'+analysis.lambda_home+'</span></div>'
++'<div class="lambda-chip">\u03bb Dep: <span>'+analysis.lambda_away+'</span></div>'
++'<div class="lambda-chip">\u03bb Total: <span>'+analysis.lambda_total+'</span></div>'
++'<div class="lambda-chip">\u03bb IY: <span>'+analysis.lambda_iy+'</span></div>'
 +'</div>';
 const iymsRows=iyms.map((row,i)=>{
 const pct=row.probability;
@@ -467,25 +344,10 @@ return '<div class="iy-market-row">'
 +'</div>';
 }).join('');
 const noSignal=signals.length===0?'<div class="iy-no-signal">Bu macta IY Alt/Ust icin guclu sinyal uretilemedi.</div>':'';
-const msResults = analysis.ms_results || [];
-const msSignals = analysis.ms_signals || [];
-const msHtml = '<div class="module-title">MODUL C — MAC SONUCU (MS)</div>'
-  + '<div style="display:flex;gap:12px;margin-bottom:12px">'
-  + msResults.map(r => {
-      const color = r.probability > 50 ? 'var(--accent)' : r.probability > 35 ? 'var(--accent2)' : 'var(--text)';
-      const signal = msSignals.find(s => s.outcome === r.outcome);
-      return '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">'
-        + '<div style="font-family:IBM Plex Mono,monospace;font-size:22px;font-weight:700;color:' + color + '">' + r.outcome + '</div>'
-        + '<div style="font-size:20px;font-weight:700;color:' + color + ';margin:4px 0">%' + r.probability + '</div>'
-        + '<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">Oran: ' + r.model_odd + '</div>'
-        + (signal ? '<div style="margin-top:6px;font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700">SINYAL</div>' : '')
-        + '</div>';
-    }).join('')
-  + '</div>';
-return lambdaHtml + msHtml
+return lambdaHtml
 +'<div class="analysis-grid">'
-+'<div><div class="module-title">MODUL A — IY/MS</div>'+iymsHtml+'</div>'
-+'<div><div class="module-title">MODUL B — IY ALT/UST</div><div>'+iyOverHtml+noSignal+'</div></div>'
++'<div><div class="module-title">MODUL A \u2014 IY/MS</div>'+iymsHtml+'</div>'
++'<div><div class="module-title">MODUL B \u2014 IY ALT/UST</div><div>'+iyOverHtml+noSignal+'</div></div>'
 +'</div>';
 }
 
