@@ -293,7 +293,22 @@ return '<div class="iy-market-row">'
 +'</div>';
 }).join('');
 const noSignal=signals.length===0?'<div class="iy-no-signal">Bu macta IY Alt/Ust icin guclu sinyal uretilemedi.</div>':'';
-return lambdaHtml
+const msResults = analysis.ms_results || [];
+const msSignals = analysis.ms_signals || [];
+const msHtml = '<div class="module-title">MODUL C — MAC SONUCU (MS)</div>'
+  + '<div style="display:flex;gap:12px;margin-bottom:12px">'
+  + msResults.map(r => {
+      const color = r.probability > 50 ? 'var(--accent)' : r.probability > 35 ? 'var(--accent2)' : 'var(--text)';
+      const signal = msSignals.find(s => s.outcome === r.outcome);
+      return '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">'
+        + '<div style="font-family:IBM Plex Mono,monospace;font-size:22px;font-weight:700;color:' + color + '">' + r.outcome + '</div>'
+        + '<div style="font-size:20px;font-weight:700;color:' + color + ';margin:4px 0">%' + r.probability + '</div>'
+        + '<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">Oran: ' + r.model_odd + '</div>'
+        + (signal ? '<div style="margin-top:6px;font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700">SINYAL</div>' : '')
+        + '</div>';
+    }).join('')
+  + '</div>';
+return lambdaHtml + msHtml
 +'<div class="analysis-grid">'
 +'<div><div class="module-title">MODUL A — IY/MS</div>'+iymsHtml+'</div>'
 +'<div><div class="module-title">MODUL B — IY ALT/UST</div><div>'+iyOverHtml+noSignal+'</div></div>'
