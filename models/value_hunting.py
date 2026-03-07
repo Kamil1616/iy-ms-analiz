@@ -1,6 +1,8 @@
 import math
 
 DC_RHO = -0.14
+LIG_ORT = 1.35      # Lig gol ortalaması
+EV_AVANTAJI = 1.15  # Ev sahibi avantajı katsayısı
 
 def poisson_prob(lam, k):
     if lam <= 0:
@@ -16,8 +18,7 @@ def dixon_coles_correction(home_goals, away_goals, lambda_home, lambda_away, rho
         return 1 + lambda_away * rho
     elif home_goals == 1 and away_goals == 1:
         return 1 - rho
-    else:
-        return 1.0
+    return 1.0
 
 def score_matrix(lambda_home, lambda_away, max_goals=8):
     matrix = {}
@@ -31,39 +32,43 @@ def score_matrix(lambda_home, lambda_away, max_goals=8):
         matrix = {k: v / total for k, v in matrix.items()}
     return matrix
 
-def compute_lambdas(home_stats_general, home_stats_home, away_stats_general, away_stats_away):
-    home_attack = (home_stats_general["avg_scored"] + home_stats_home["avg_scored"]) / 2
-    away_attack = (away_stats_general["avg_scored"] + away_stats_away["avg_scored"]) / 2
-    home_gd = home_stats_general["goals_scored"] - home_stats_general["goals_conceded"]
-    away_gd = away_stats_general["goals_scored"] - away_stats_general["goals_conceded"]
-    net_diff = (home_gd - away_gd) / 10.0
-    net_diff = max(-0.3, min(0.3, net_diff))
-    lambda_home = home_attack * 0.95 * (1 + net_diff * 0.1)
-    lambda_away = away_attack * 1.00 * (1 - net_diff * 0.1)
-    form_diff_h = home_stats_general["avg_scored"] - home_attack
-    form_diff_a = away_stats_general["avg_scored"] - away_attack
-    if abs(form_diff_h) > 0.5:
-        lambda_home += form_diff_h * 0.3
-    if abs(form_diff_a) > 0.5:
-        lambda_away += form_diff_a * 0.3
+def compute_lambdas(home_stats, away_stats):
+    """
+    Gerçek Dixon-Coles formülü:
+    λ_ev  = home_attack × away_defence × LIG_ORT × EV_AVANTAJI
+    λ_dep = away_attack × home_defence × LIG_ORT
+    
+    attack  = takımın attığı gol / lig ortalaması (yüksek = iyi hücum)
+    defence = takımın yediği gol / lig ortalaması (düşük = iyi savunma)
+    """
+    # Ev sahibi: ev maçlarındaki attack, away maçlarındaki defence
+    h_att = home_stats.get("home_attack", 1.0)
+    h_def = home_stats.get("home_defence", 1.0)
+
+    # Deplasman: deplasman maçlarındaki attack, ev maçlarındaki defence
+    a_att = away_stats.get("away_attack", 1.0)
+    a_def = away_stats.get("away_defence", 1.0)
+
+    lambda_home = h_att * a_def * LIG_ORT * EV_AVANTAJI
+    lambda_away = a_att * h_def * LIG_ORT
+
     lambda_home = max(0.3, lambda_home)
     lambda_away = max(0.3, lambda_away)
-    return lambda_home, lambda_away
 
-def compute_lambda_iy(lambda_total, home_stats_general, away_stats_general, home_stats_home, away_stats_away):
-    ht_ratio_home = home_stats_general.get("ht_goal_ratio", 0.27)
-    ht_ratio_away = away_stats_general.get("ht_goal_ratio", 0.27)
-    ht_ratio = (ht_ratio_home + ht_ratio_away) / 2
+    return round(lambda_home, 3), round(lambda_away, 3)
+
+def compute_lambda_iy(lambda_home, lambda_away, home_stats, away_stats):
+    lambda_total = lambda_home + lambda_away
+    ht_home = home_stats.get("general", {}).get("ht_goal_ratio", 0.27)
+    ht_away = away_stats.get("general", {}).get("ht_goal_ratio", 0.27)
+    ht_ratio = (ht_home + ht_away) / 2
     ht_ratio = max(0.15, min(0.55, ht_ratio))
     lambda_iy = lambda_total * ht_ratio
-    btts_avg = (home_stats_general.get("btts_rate", 0.4) + away_stats_general.get("btts_rate", 0.4)) / 2
-    if btts_avg > 0.6:
-        lambda_iy *= 1.08
-    tempo_home = home_stats_general.get("tempo_score", 2.5)
-    tempo_away = away_stats_general.get("tempo_score", 2.5)
-    if (tempo_home + tempo_away) / 2 > 4.0:
+    btts = (home_stats.get("general", {}).get("btts_rate", 0.45) +
+            away_stats.get("general", {}).get("btts_rate", 0.45)) / 2
+    if btts > 0.6:
         lambda_iy *= 1.05
-    return lambda_iy
+    return round(lambda_iy, 3)
 
 def compute_halftime_probs(lambda_home, lambda_away, lambda_iy):
     total = lambda_home + lambda_away
@@ -74,12 +79,9 @@ def compute_halftime_probs(lambda_home, lambda_away, lambda_iy):
         for a in range(7):
             p = poisson_prob(lh_iy, h) * poisson_prob(la_iy, a)
             p *= dixon_coles_correction(h, a, lh_iy, la_iy)
-            if h > a:
-                ht_probs["1"] += p
-            elif h == a:
-                ht_probs["X"] += p
-            else:
-                ht_probs["2"] += p
+            if h > a:   ht_probs["1"] += p
+            elif h == a: ht_probs["X"] += p
+            else:        ht_probs["2"] += p
     total_ht = sum(ht_probs.values())
     if total_ht > 0:
         ht_probs = {k: v / total_ht for k, v in ht_probs.items()}
@@ -90,12 +92,9 @@ def compute_iyms_probs(lambda_home, lambda_away, lambda_iy):
     ht_probs = compute_halftime_probs(lambda_home, lambda_away, lambda_iy)
     ft_probs = {"1": 0, "X": 0, "2": 0}
     for (h, a), p in ft_matrix.items():
-        if h > a:
-            ft_probs["1"] += p
-        elif h == a:
-            ft_probs["X"] += p
-        else:
-            ft_probs["2"] += p
+        if h > a:   ft_probs["1"] += p
+        elif h == a: ft_probs["X"] += p
+        else:        ft_probs["2"] += p
     iyms = {}
     for ht in ["1", "X", "2"]:
         for ft in ["1", "X", "2"]:
@@ -112,6 +111,15 @@ def compute_iyms_probs(lambda_home, lambda_away, lambda_iy):
         iyms = {k: v / total for k, v in iyms.items()}
     return iyms
 
+def compute_ms_probs(lambda_home, lambda_away):
+    ft_matrix = score_matrix(lambda_home, lambda_away)
+    probs = {"1": 0, "X": 0, "2": 0}
+    for (h, a), p in ft_matrix.items():
+        if h > a:   probs["1"] += p
+        elif h == a: probs["X"] += p
+        else:        probs["2"] += p
+    return probs
+
 def compute_iy_over_probs(lambda_iy):
     def p_at_least(lam, k):
         return 1 - sum(poisson_prob(lam, i) for i in range(k))
@@ -123,6 +131,7 @@ def compute_iy_over_probs(lambda_iy):
     }
 
 SIGNAL_THRESHOLDS = {"0.5": 0.65, "1.5": 0.54, "2.5": 0.35, "3.5": 0.22}
+MS_SIGNAL_THRESHOLDS = {"1": 0.55, "X": 0.35, "2": 0.50}
 
 def get_iy_signals(iy_over_probs):
     signals = []
@@ -135,10 +144,43 @@ def get_iy_signals(iy_over_probs):
             })
     return signals
 
-def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_stats_away):
-    lambda_home, lambda_away = compute_lambdas(home_stats_general, home_stats_home, away_stats_general, away_stats_away)
+def get_ms_signals(ms_probs):
+    signals = []
+    labels = {"1": "Ev Kazanir", "X": "Beraberlik", "2": "Dep Kazanir"}
+    for outcome, prob in ms_probs.items():
+        if prob >= MS_SIGNAL_THRESHOLDS.get(outcome, 1.0):
+            signals.append({
+                "outcome": outcome,
+                "label": labels[outcome],
+                "probability": round(prob * 100, 1),
+                "model_odd": round((1 / prob) * 0.90, 2) if prob > 0 else 999,
+                "signal": "Guclu Sinyal"
+            })
+    return signals
+
+def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_stats_away, home_stats=None, away_stats=None):
+    # Eğer yeni format (home_stats/away_stats) geliyorsa onu kullan
+    if home_stats is None:
+        home_stats = {
+            "home_attack": home_stats_home["avg_scored"] / 1.35,
+            "home_defence": home_stats_home.get("goals_conceded", 10) / max(home_stats_home.get("goals_scored", 10), 1),
+            "away_attack": away_stats_general["avg_scored"] / 1.35,
+            "away_defence": away_stats_general.get("goals_conceded", 20) / max(away_stats_general.get("goals_scored", 20), 1),
+            "general": home_stats_general
+        }
+    if away_stats is None:
+        away_stats = {
+            "home_attack": home_stats_general["avg_scored"] / 1.35,
+            "home_defence": home_stats_general.get("goals_conceded", 20) / max(home_stats_general.get("goals_scored", 20), 1),
+            "away_attack": away_stats_away["avg_scored"] / 1.35,
+            "away_defence": away_stats_away.get("goals_conceded", 12) / max(away_stats_away.get("goals_scored", 12), 1),
+            "general": away_stats_general
+        }
+
+    lambda_home, lambda_away = compute_lambdas(home_stats, away_stats)
     lambda_total = lambda_home + lambda_away
-    lambda_iy = compute_lambda_iy(lambda_total, home_stats_general, away_stats_general, home_stats_home, away_stats_away)
+    lambda_iy = compute_lambda_iy(lambda_home, lambda_away, home_stats, away_stats)
+
     iyms_probs = compute_iyms_probs(lambda_home, lambda_away, lambda_iy)
     sorted_iyms = sorted(iyms_probs.items(), key=lambda x: x[1], reverse=True)
     iyms_results = []
@@ -153,48 +195,23 @@ def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_s
             "status": None,
             "divider": i == 4
         })
+
     iy_over_probs = compute_iy_over_probs(lambda_iy)
     ms_probs = compute_ms_probs(lambda_home, lambda_away)
     ms_results = [
-        {"outcome": o, "probability": round(ms_probs[o]*100,1), "model_odd": round((1/ms_probs[o])*0.90,2) if ms_probs[o]>0 else 999}
-        for o in ["1","X","2"]
+        {"outcome": o, "probability": round(ms_probs[o] * 100, 1),
+         "model_odd": round((1 / ms_probs[o]) * 0.90, 2) if ms_probs[o] > 0 else 999}
+        for o in ["1", "X", "2"]
     ]
+
     return {
-        "lambda_home": round(lambda_home, 3),
-        "lambda_away": round(lambda_away, 3),
+        "lambda_home": lambda_home,
+        "lambda_away": lambda_away,
         "lambda_total": round(lambda_total, 3),
-        "lambda_iy": round(lambda_iy, 3),
+        "lambda_iy": lambda_iy,
         "iyms_results": iyms_results,
         "iy_over_probs": {k: round(v * 100, 1) for k, v in iy_over_probs.items()},
         "iy_signals": get_iy_signals(iy_over_probs),
         "ms_results": ms_results,
         "ms_signals": get_ms_signals(ms_probs),
     }
-
-MS_SIGNAL_THRESHOLDS = {"1": 0.55, "X": 0.35, "2": 0.50}
-
-def compute_ms_probs(lambda_home, lambda_away):
-    ft_matrix = score_matrix(lambda_home, lambda_away)
-    probs = {"1": 0, "X": 0, "2": 0}
-    for (h, a), p in ft_matrix.items():
-        if h > a:
-            probs["1"] += p
-        elif h == a:
-            probs["X"] += p
-        else:
-            probs["2"] += p
-    return probs
-
-def get_ms_signals(ms_probs):
-    signals = []
-    labels = {"1": "Ev Kazanir", "X": "Beraberlik", "2": "Dep Kazanir"}
-    for outcome, prob in ms_probs.items():
-        if prob >= MS_SIGNAL_THRESHOLDS.get(outcome, 1.0):
-            signals.append({
-                "outcome": outcome,
-                "label": labels[outcome],
-                "probability": round(prob * 100, 1),
-                "model_odd": round((1/prob)*0.90, 2) if prob > 0 else 999,
-                "signal": "Guclu Sinyal"
-            })
-    return signals
