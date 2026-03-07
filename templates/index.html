@@ -177,7 +177,14 @@ return nameMatch&&leagueMatch;
 });
 const container=document.getElementById('fixtureList');
 if(filtered.length===0){container.innerHTML='<div class="no-fixtures">Mac bulunamadi</div>';updateCounter(0);return;}
-container.innerHTML=filtered.map(f=>buildFixtureCard(f)).join('');
+container.innerHTML='';
+filtered.forEach(function(f){
+  var tmp=document.createElement('div');
+  tmp.innerHTML=buildFixtureCard(f);
+  var card=tmp.firstElementChild;
+  card.querySelector('.fixture-header').addEventListener('click',function(){openAnalysis(f.fixture_id);});
+  container.appendChild(card);
+});
 updateCounter(filtered.length);
 }
 
@@ -212,7 +219,6 @@ el.innerHTML=
 +'</div>'
 +'</div>'
 +'<div class="analysis-panel" id="panel-'+fid+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>';
-el.querySelector('.fixture-header').addEventListener('click',function(){openAnalysis(fid);});
 return el.outerHTML;
 }
 
