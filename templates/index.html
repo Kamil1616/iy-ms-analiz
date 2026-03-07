@@ -196,28 +196,29 @@ const msSignals=analysis?.ms_signals||[];
 const hasSignal=signals.length>0||msSignals.length>0;
 const isLive=['1H','2H','HT','ET','BT','P','INT','LIVE'].includes(f.status||'');
 const hasScore=f.home_goals!==null&&f.home_goals!==undefined&&f.away_goals!==null&&f.away_goals!==undefined;
-const scoreStr=hasScore?f.home_goals+' - '+f.away_goals:'';
-const timeDisplay=isLive&&f.elapsed?'\u25cf '+f.elapsed+"'":(f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--');
+const scoreStr=hasScore?String(f.home_goals)+'-'+String(f.away_goals):'';
+const timeDisplay=isLive&&f.elapsed?String(f.elapsed)+"'":(f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--');
 const timeColor=isLive?'var(--accent)':'var(--muted)';
+const livePrefix=isLive?'<span style="color:var(--accent)">● </span>':'';
 const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('')+msSignals.map(s=>'<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>').join('');
 const fid=f.fixture_id;
-const cd=currentDate;
-return '<div class="fixture-card'+(hasSignal?' has-signal':'')+'\" id=\"card-'+fid+'\">'
-+'<div class="fixture-header" onclick="toggleAnalysis('+fid+',\''+cd+'\')">'
-+'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
-+'<span class="league-badge">'+(f.league_name||'\u2014')+'</span>'
-+'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:'+timeColor+'">'+timeDisplay+'</span>'
-+(scoreStr?'<span style="font-family:IBM Plex Mono,monospace;font-size:13px;color:var(--accent);font-weight:700">'+scoreStr+'</span>':'')
-+'<span style="margin-left:auto;display:flex;gap:4px">'+signalHtml+'</span>'
+const el=document.createElement('div');
+el.className='fixture-card'+(hasSignal?' has-signal':'');
+el.id='card-'+fid;
+el.innerHTML='<div class="fixture-header">'
++'<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden">'
++'<span class="league-badge" style="flex-shrink:0">'+(f.league_name||'—')+'</span>'
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:'+timeColor+';flex-shrink:0;white-space:nowrap">'+livePrefix+timeDisplay+'</span>'
++(scoreStr?'<span style="font-family:IBM Plex Mono,monospace;font-size:13px;color:var(--accent);font-weight:700;flex-shrink:0;white-space:nowrap">'+scoreStr+'</span>':'')
++'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:4px">'+(f.home_team_name||'?')+'</span>'
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);flex-shrink:0;margin:0 4px">vs</span>'
++'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+(f.away_team_name||'?')+'</span>'
++(signalHtml?'<span style="flex-shrink:0;margin-left:6px;display:flex;gap:3px">'+signalHtml+'</span>':'')
 +'</div>'
-+'<div style="display:flex;align-items:center;gap:8px">'
-+'<span style="font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.home_team_name||'?')+'</span>'
-+'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);flex-shrink:0">vs</span>'
-+'<span style="font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+(f.away_team_name||'?')+'</span>'
 +'</div>'
-+'</div>'
-+'<div class="analysis-panel" id="panel-'+fid+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>'
-+'</div>';
++'<div class="analysis-panel" id="panel-'+fid+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>';
+el.querySelector('.fixture-header').addEventListener('click',function(){toggleAnalysis(fid,currentDate);});
+return el.outerHTML;
 }
 
 async function toggleAnalysis(fixtureId,date){
