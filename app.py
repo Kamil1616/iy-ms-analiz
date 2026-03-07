@@ -129,6 +129,16 @@ def api_analyze_all():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/clear-cache", methods=["POST","GET"])
+def clear_cache():
+    import shutil
+    cache_dir = "instance/cache"
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir)
+        os.makedirs(cache_dir, exist_ok=True)
+    return jsonify({"status": "ok", "message": "Cache temizlendi"})
+
+
 @app.route("/api/dates")
 def api_dates():
     today = datetime.now()
