@@ -154,6 +154,11 @@ def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_s
             "divider": i == 4
         })
     iy_over_probs = compute_iy_over_probs(lambda_iy)
+    ms_probs = compute_ms_probs(lambda_home, lambda_away)
+    ms_results = [
+        {"outcome": o, "probability": round(ms_probs[o]*100,1), "model_odd": round((1/ms_probs[o])*0.90,2) if ms_probs[o]>0 else 999}
+        for o in ["1","X","2"]
+    ]
     return {
         "lambda_home": round(lambda_home, 3),
         "lambda_away": round(lambda_away, 3),
@@ -162,4 +167,34 @@ def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_s
         "iyms_results": iyms_results,
         "iy_over_probs": {k: round(v * 100, 1) for k, v in iy_over_probs.items()},
         "iy_signals": get_iy_signals(iy_over_probs),
+        "ms_results": ms_results,
+        "ms_signals": get_ms_signals(ms_probs),
     }
+
+MS_SIGNAL_THRESHOLDS = {"1": 0.55, "X": 0.35, "2": 0.50}
+
+def compute_ms_probs(lambda_home, lambda_away):
+    ft_matrix = score_matrix(lambda_home, lambda_away)
+    probs = {"1": 0, "X": 0, "2": 0}
+    for (h, a), p in ft_matrix.items():
+        if h > a:
+            probs["1"] += p
+        elif h == a:
+            probs["X"] += p
+        else:
+            probs["2"] += p
+    return probs
+
+def get_ms_signals(ms_probs):
+    signals = []
+    labels = {"1": "Ev Kazanir", "X": "Beraberlik", "2": "Dep Kazanir"}
+    for outcome, prob in ms_probs.items():
+        if prob >= MS_SIGNAL_THRESHOLDS.get(outcome, 1.0):
+            signals.append({
+                "outcome": outcome,
+                "label": labels[outcome],
+                "probability": round(prob * 100, 1),
+                "model_odd": round((1/prob)*0.90, 2) if prob > 0 else 999,
+                "signal": "Guclu Sinyal"
+            })
+    return signals
