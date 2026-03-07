@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IY/MS Analiz Sistemi</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0b0e;--surface:#111318;--surface2:#181b22;--border:#1e222d;--accent:#00ff87;--accent2:#00c2ff;--warn:#ffaa00;--danger:#ff4466;--text:#e8eaf0;--muted:#5a6072;--card-bg:#13161f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+header{background:linear-gradient(135deg,#0d0f14 0%,#111520 100%);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--accent)}
+.logo span{color:var(--text)}
+.header-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.live-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.date-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:8px;overflow-x:auto}
+.date-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:6px 16px;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap;transition:all 0.2s}
+.date-btn:hover,.date-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.controls{padding:16px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.btn{background:var(--accent);color:#000;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:1px;transition:all 0.2s}
+.btn:hover{background:#00e07a;transform:translateY(-1px)}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.btn-outline{background:transparent;color:var(--accent2);border:1px solid var(--accent2)}
+.btn-outline:hover{background:var(--accent2);color:#000}
+.filter-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;width:220px}
+.filter-input:focus{border-color:var(--accent)}
+.signal-filter{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;cursor:pointer}
+.counter{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-left:auto}
+.main{padding:0 24px 24px}
+.fixture-card{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;transition:border-color 0.2s}
+.fixture-card:hover{border-color:#2a2f3d}
+.fixture-card.has-signal{border-left:3px solid var(--accent)}
+.fixture-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;background:var(--card-bg);transition:background 0.15s}
+.fixture-header:hover{background:var(--surface2)}
+.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.teams{flex:1;display:flex;align-items:center;gap:10px}
+.team-name{font-size:14px;font-weight:500}
+.vs{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.match-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap}
+.signal-badges{display:flex;gap:4px;flex-wrap:wrap}
+.signal-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(0,255,135,0.12);color:var(--accent);border:1px solid rgba(0,255,135,0.3)}
+.expand-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.expand-btn:hover{border-color:var(--accent);color:var(--accent)}
+.expand-btn.loading{color:var(--warn);border-color:var(--warn)}
+.analysis-panel{display:none;padding:16px;border-top:1px solid var(--border);background:var(--surface)}
+.analysis-panel.open{display:block}
+.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.analysis-grid{grid-template-columns:1fr}}
+.module-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--accent2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.module-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.lambda-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.lambda-chip{background:var(--surface2);border:1px solid var(--border);padding:6px 12px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.lambda-chip span{color:var(--accent);font-weight:600}
+.iyms-table{width:100%;border-collapse:collapse;font-size:13px}
+.iyms-table th{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);letter-spacing:1px}
+.iyms-table td{padding:7px 8px;border-bottom:1px solid rgba(30,34,45,0.5)}
+.iyms-table tr:last-child td{border-bottom:none}
+.iyms-table tr.divider td{border-bottom:2px dashed var(--border);padding-bottom:10px}
+.iyms-table tr.divider+tr td{padding-top:10px}
+.selection-cell{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px;color:var(--text)}
+.prob-cell{font-weight:600}
+.prob-bar-wrap{display:flex;align-items:center;gap:8px}
+.prob-bar{height:4px;border-radius:2px;background:var(--border);width:80px;flex-shrink:0}
+.prob-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width 0.8s ease}
+.odd-cell{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+.value-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:rgba(0,255,135,0.15);color:var(--accent);border:1px solid rgba(0,255,135,0.3)}
+.rank-1 .selection-cell{color:var(--accent)}
+.rank-2 .selection-cell{color:var(--accent2)}
+.iy-market-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.iy-market-row:last-child{border-bottom:none}
+.iy-market-name{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;width:110px}
+.iy-prob-num{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;width:50px}
+.iy-bar-wrap{flex:1}
+.iy-bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.iy-bar-fill{height:100%;border-radius:3px;transition:width 1s ease}
+.iy-threshold-line{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap}
+.iy-signal-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:3px 10px;border-radius:3px;background:rgba(0,255,135,0.15);color:var(--accent);border:1px solid rgba(0,255,135,0.3)}
+.iy-no-signal{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 0}
+.loading-spinner{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--warn);padding:16px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--warn);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{color:var(--danger);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:12px}
+.no-fixtures{text-align:center;padding:60px 24px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+<div>
+<div class="logo">IY/MS <span>Analiz</span></div>
+<div class="header-sub">IY/MS + Alt/Ust Sinyal Sistemi</div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;">
+<span class="live-dot"></span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)" id="lastUpdate">--:--</span>
+</div>
+</header>
+<div class="date-bar" id="dateBar"></div>
+<div class="controls">
+<button class="btn" id="btnAnalyzeAll">TUM MACLARI ANALIZ ET</button>
+<button class="btn btn-outline" id="btnRefresh">YENILE</button>
+<input class="filter-input" type="text" id="filterTeam" placeholder="Takim ara...">
+<select class="signal-filter" id="signalFilter">
+<option value="all">Tum Maclar</option>
+<option value="signal">Sadece Sinyalli</option>
+</select>
+<span class="counter" id="matchCounter">0 mac</span>
+</div>
+<div class="main" id="fixtureList">
+<div class="no-fixtures">Tarih secin ve analiz baslatin</div>
+</div>
+<script>
+let currentDate=new Date().toISOString().split('T')[0];
+let allFixtures=[];
+let analysisCache={};
+
+function initDates(){
+const today=new Date();
+const bar=document.getElementById('dateBar');
+bar.innerHTML='';
+for(let i=-1;i<=3;i++){
+const d=new Date(today);
+d.setDate(d.getDate()+i);
+const str=d.toISOString().split('T')[0];
+const label=i===0?'Bugun':i===-1?'Dun':i===1?'Yarin':str.slice(5);
+const btn=document.createElement('button');
+btn.className='date-btn'+(str===currentDate?' active':'');
+btn.textContent=label+' '+str.slice(5);
+btn.onclick=()=>selectDate(str);
+bar.appendChild(btn);
+}}
+
+async function selectDate(date){
+currentDate=date;
+document.querySelectorAll('.date-btn').forEach(b=>{
+b.classList.toggle('active',b.textContent.includes(date.slice(5)));
+});
+await loadFixtures();
+}
+
+async function loadFixtures(){
+document.getElementById('fixtureList').innerHTML='<div class="loading-spinner"><div class="spinner"></div>Maclar yukleniyor...</div>';
+try{
+const res=await fetch('/api/fixtures?date='+currentDate);
+const data=await res.json();
+allFixtures=data.fixtures||[];
+renderFixtures(allFixtures);
+document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+}catch(e){
+document.getElementById('fixtureList').innerHTML='<div class="error-msg">Veri alinamadi: '+e.message+'</div>';
+}}
+
+function renderFixtures(fixtures){
+const search=document.getElementById('filterTeam').value.toLowerCase();
+const signalOnly=document.getElementById('signalFilter').value==='signal';
+let filtered=fixtures.filter(f=>{
+const nameMatch=!search||f.home_team_name?.toLowerCase().includes(search)||f.away_team_name?.toLowerCase().includes(search);
+const analysis=analysisCache[f.fixture_id];
+const hasSignal=analysis?.iy_signals?.length>0;
+if(signalOnly&&!hasSignal)return false;
+return nameMatch;
+});
+const container=document.getElementById('fixtureList');
+if(filtered.length===0){container.innerHTML='<div class="no-fixtures">Bu tarih icin mac bulunamadi</div>';updateCounter(0);return;}
+container.innerHTML=filtered.map(f=>buildFixtureCard(f)).join('');
+updateCounter(filtered.length);
+}
+
+function buildFixtureCard(f){
+const analysis=analysisCache[f.fixture_id];
+const signals=analysis?.iy_signals||[];
+const hasSignal=signals.length>0;
+const scoreStr=(f.home_goals!==null&&f.away_goals!==null)?f.home_goals+' - '+f.away_goals:'vs';
+const time=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--';
+const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('');
+return '<div class="fixture-card'+(hasSignal?' has-signal':'')+'" id="card-'+f.fixture_id+'">'
++'<div class="fixture-header" onclick="toggleAnalysis('+f.fixture_id+')">'
++'<div class="league-badge" title="'+f.league_name+'">'+( f.league_name||'—')+'</div>'
++'<div class="teams"><span class="team-name">'+(f.home_team_name||'?')+'</span>'
++'<span class="vs">'+scoreStr+'</span>'
++'<span class="team-name">'+(f.away_team_name||'?')+'</span></div>'
++'<div class="signal-badges">'+signalHtml+'</div>'
++'<span class="match-time">'+time+'</span>'
++'<button class="expand-btn" id="expbtn-'+f.fixture_id+'" onclick="event.stopPropagation();loadAnalysis('+f.fixture_id+',\''+currentDate+'\')">'
++(analysis?'Analiz':'Analiz Et')+'</button>'
++'</div>'
++'<div class="analysis-panel" id="panel-'+f.fixture_id+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>'
++'</div>';
+}
+
+async function toggleAnalysis(fixtureId){
+const panel=document.getElementById('panel-'+fixtureId);
+if(!panel)return;
+if(!panel.classList.contains('open')){
+if(!analysisCache[fixtureId]){await loadAnalysis(fixtureId,currentDate,true);}
+else{panel.classList.add('open');}
+}else{panel.classList.remove('open');}
+}
+
+async function loadAnalysis(fixtureId,date,autoOpen=false){
+const btn=document.getElementById('expbtn-'+fixtureId);
+const panel=document.getElementById('panel-'+fixtureId);
+if(btn){btn.textContent='Yukleniyor';btn.classList.add('loading');}
+panel.innerHTML='<div class="loading-spinner"><div class="spinner"></div>Model calisiyor...</div>';
+panel.classList.add('open');
+try{
+const res=await fetch('/api/analyze/'+fixtureId+'?date='+date);
+const data=await res.json();
+if(data.error)throw new Error(data.error);
+analysisCache[fixtureId]=data.analysis;
+panel.innerHTML=buildAnalysisHtml(data.fixture,data.analysis);
+if(btn){btn.textContent='Analiz';btn.classList.remove('loading');}
+const fixture=allFixtures.find(f=>f.fixture_id===fixtureId);
+if(fixture){
+const card=document.getElementById('card-'+fixtureId);
+if(card&&data.analysis?.iy_signals?.length>0)card.classList.add('has-signal');
+const sb=card?.querySelector('.signal-badges');
+if(sb)sb.innerHTML=(data.analysis?.iy_signals||[]).map(s=>'<span class="signal-badge">'+s.market+'</span>').join('');
+}
+}catch(e){
+panel.innerHTML='<div class="error-msg">Hata: '+e.message+'</div>';
+if(btn){btn.textContent='Analiz Et';btn.classList.remove('loading');}
+}}
+
+function buildAnalysisHtml(fixture,analysis){
+const iyms=analysis.iyms_results||[];
+const signals=analysis.iy_signals||[];
+const iyOver=analysis.iy_over_probs||{};
+const lambdaHtml='<div class="lambda-row">'
++'<div class="lambda-chip">λ Ev: <span>'+analysis.lambda_home+'</span></div>'
++'<div class="lambda-chip">λ Dep: <span>'+analysis.lambda_away+'</span></div>'
++'<div class="lambda-chip">λ Total: <span>'+analysis.lambda_total+'</span></div>'
++'<div class="lambda-chip">λ IY: <span>'+analysis.lambda_iy+'</span></div>'
++'</div>';
+const iymsRows=iyms.map((row,i)=>{
+const pct=row.probability;
+const barW=Math.min(100,pct*3.5);
+const divClass=row.divider?'divider':'';
+const color=pct>20?'var(--accent)':pct>12?'var(--accent2)':'var(--text)';
+return '<tr class="'+divClass+' rank-'+row.rank+'">'
++'<td style="color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px;width:24px">'+row.rank+'</td>'
++'<td class="selection-cell">'+row.selection+'</td>'
++'<td class="prob-cell" style="color:'+color+'">%'+pct+'</td>'
++'<td><div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-bar-fill" style="width:'+barW+'%"></div></div></div></td>'
++'<td class="odd-cell">'+row.model_odd+'</td>'
++'<td>'+(row.status==='VALUE'?'<span class="value-badge">VALUE</span>':'')+'</td>'
++'</tr>';
+}).join('');
+const iymsHtml='<table class="iyms-table"><thead><tr><th>#</th><th>SECIM</th><th>OLASILIK</th><th></th><th>MODEL ORAN</th><th>DURUM</th></tr></thead><tbody>'+iymsRows+'</tbody></table>';
+const thresholds={'1.5':90,'2.5':80,'3.5':70};
+const iyOverHtml=Object.entries(iyOver).map(([market,prob])=>{
+const thresh=thresholds[market];
+const passed=prob>=thresh;
+const color=passed?'var(--accent)':prob>=thresh*0.75?'var(--warn)':'var(--muted)';
+const barColor=passed?'var(--accent)':prob>=thresh*0.75?'var(--warn)':'var(--danger)';
+return '<div class="iy-market-row">'
++'<span class="iy-market-name" style="color:'+color+'">IY '+market+' Ust</span>'
++'<span class="iy-prob-num" style="color:'+color+'">%'+prob+'</span>'
++'<div class="iy-bar-wrap"><div class="iy-bar"><div class="iy-bar-fill" style="width:'+Math.min(100,prob)+'%;background:'+barColor+'"></div></div></div>'
++'<span class="iy-threshold-line">Esik: %'+thresh+'</span>'
++(passed?'<span class="iy-signal-tag">GUCLU SINYAL</span>':'')
++'</div>';
+}).join('');
+const noSignal=signals.length===0?'<div class="iy-no-signal">Bu macta IY Alt/Ust icin guclu sinyal uretilemedi.</div>':'';
+return lambdaHtml
++'<div class="analysis-grid">'
++'<div><div class="module-title">MODUL A — IY/MS</div>'+iymsHtml+'</div>'
++'<div><div class="module-title">MODUL B — IY ALT/UST</div><div>'+iyOverHtml+noSignal+'</div></div>'
++'</div>';
+}
+
+document.getElementById('btnAnalyzeAll').addEventListener('click',async()=>{
+const btn=document.getElementById('btnAnalyzeAll');
+btn.disabled=true;btn.textContent='Analiz ediliyor...';
+try{
+const res=await fetch('/api/analyze-all?date='+currentDate);
+const data=await res.json();
+(data.results||[]).forEach(r=>{analysisCache[r.fixture.fixture_id]=r.analysis;});
+renderFixtures(allFixtures);
+}catch(e){alert('Hata: '+e.message);}
+finally{btn.disabled=false;btn.textContent='TUM MACLARI ANALIZ ET';}
+});
+
+document.getElementById('btnRefresh').addEventListener('click',loadFixtures);
+document.getElementById('filterTeam').addEventListener('input',()=>renderFixtures(allFixtures));
+document.getElementById('signalFilter').addEventListener('change',()=>renderFixtures(allFixtures));
+
+function updateCounter(n){
+const count=n!==undefined?n:allFixtures.length;
+document.getElementById('matchCounter').textContent=count+' mac';
+}
+
+initDates();
+loadFixtures();
+</script>
+</body>
+</html>
