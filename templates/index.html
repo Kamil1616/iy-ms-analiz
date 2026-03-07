@@ -183,43 +183,49 @@ updateCounter(filtered.length);
 
 function buildFixtureCard(f){
 const analysis=analysisCache[f.fixture_id];
-const signals=analysis?.iy_signals||[];
-const msSignals=analysis?.ms_signals||[];
+const signals=analysis?analysis.iy_signals||[]:[];
+const msSignals=analysis?analysis.ms_signals||[]:[];
 const hasSignal=signals.length>0||msSignals.length>0;
-const isLive=['1H','2H','HT','ET','BT','P','INT','LIVE'].includes(f.status||'');
+const isLive=['1H','2H','HT','ET','BT','P','INT','LIVE'].indexOf(f.status||'')>=0;
 const hasScore=f.home_goals!==null&&f.home_goals!==undefined&&f.away_goals!==null&&f.away_goals!==undefined;
-const scoreStr=hasScore?String(f.home_goals)+'-'+String(f.away_goals):'';
-const timeDisplay=isLive&&f.elapsed?String(f.elapsed)+"'":(f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--');
-const timeColor=isLive?'var(--accent)':'var(--muted)';
-const dot=isLive?'<span style="color:var(--accent)">● </span>':'';
-const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('')+msSignals.map(s=>'<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>').join('');
+const scoreStr=hasScore?String(f.home_goals)+' - '+String(f.away_goals):'';
+const t=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--';
+const timeStr=isLive&&f.elapsed?'● '+f.elapsed+"'":t;
+const timeCol=isLive?'var(--accent)':'var(--muted)';
+const scoreCol=isLive?'color:var(--accent);font-weight:700':'color:var(--accent);font-weight:600';
+const iyBadges=signals.map(function(s){return '<span class="signal-badge">'+s.market+'</span>';}).join('');
+const msBadges=msSignals.map(function(s){return '<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>';}).join('');
 const fid=f.fixture_id;
-const div=document.createElement('div');
-div.className='fixture-card'+(hasSignal?' has-signal':'');
-div.id='card-'+fid;
-div.innerHTML=
+var el=document.createElement('div');
+el.className='fixture-card'+(hasSignal?' has-signal':'');
+el.id='card-'+fid;
+el.innerHTML=
 '<div class="fixture-header">'
-+'<div style="display:flex;align-items:center;gap:6px;overflow:hidden;flex-wrap:nowrap">'
++'<div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0">'
 +'<span class="league-badge" style="flex-shrink:0">'+(f.league_name||'—')+'</span>'
-+'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:'+timeColor+';flex-shrink:0;white-space:nowrap">'+dot+timeDisplay+'</span>'
-+(scoreStr?'<span style="font-family:IBM Plex Mono,monospace;font-size:13px;color:var(--accent);font-weight:700;flex-shrink:0;white-space:nowrap;margin:0 2px">'+scoreStr+'</span>':'')
-+'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.home_team_name||'?')+'</span>'
-+'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);flex-shrink:0;padding:0 4px">vs</span>'
-+'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+(f.away_team_name||'?')+'</span>'
-+(signalHtml?'<span style="flex-shrink:0;margin-left:4px;display:flex;gap:3px">'+signalHtml+'</span>':'')
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;white-space:nowrap;flex-shrink:0;color:'+timeCol+'">'+timeStr+'</span>'
++(scoreStr?'<span style="font-family:IBM Plex Mono,monospace;font-size:12px;white-space:nowrap;flex-shrink:0;'+scoreCol+'">'+scoreStr+'</span>':'')
++'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(f.home_team_name||'?')+'</span>'
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);flex-shrink:0">vs</span>'
++'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">'+(f.away_team_name||'?')+'</span>'
++(iyBadges||msBadges?'<span style="flex-shrink:0;display:flex;gap:3px">'+iyBadges+msBadges+'</span>':'')
 +'</div>'
 +'</div>'
 +'<div class="analysis-panel" id="panel-'+fid+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>';
-div.querySelector('.fixture-header').addEventListener('click',function(){toggleAnalysis(fid,currentDate);});
-return div.outerHTML;
+el.querySelector('.fixture-header').addEventListener('click',function(){openAnalysis(fid);});
+return el.outerHTML;
 }
 
-async function toggleAnalysis(fixtureId,date){
-var panel=document.getElementById('panel-'+fixtureId);
+function openAnalysis(fid){
+var panel=document.getElementById('panel-'+fid);
 if(!panel)return;
 if(panel.classList.contains('open')){panel.classList.remove('open');return;}
-if(analysisCache[fixtureId]){panel.innerHTML=buildAnalysisHtml({fixture_id:fixtureId},analysisCache[fixtureId]);panel.classList.add('open');}
-else{loadAnalysis(fixtureId,date||currentDate);}
+if(analysisCache[fid]){
+  panel.innerHTML=buildAnalysisHtml({fixture_id:fid},analysisCache[fid]);
+  panel.classList.add('open');
+}else{
+  loadAnalysis(fid,currentDate);
+}
 }
 
 async function loadAnalysis(fixtureId,date,autoOpen=false){
@@ -233,7 +239,7 @@ const res=await fetch('/api/analyze/'+fixtureId+'?date='+date);
 const data=await res.json();
 if(data.error)throw new Error(data.error);
 analysisCache[fixtureId]=data.analysis;
-panel.innerHTML=buildAnalysisHtml(data.fixture,data.analysis);
+panel.innerHTML=buildAnalysisHtml(data.fixture||{fixture_id:fixtureId},data.analysis);
 if(btn){btn.textContent='Analiz';btn.classList.remove('loading');}
 const card=document.getElementById('card-'+fixtureId);
 if(card&&data.analysis?.iy_signals?.length>0)card.classList.add('has-signal');
@@ -269,7 +275,7 @@ return '<tr class="'+divClass+' rank-'+row.rank+'">'
 +'</tr>';
 }).join('');
 const iymsHtml='<table class="iyms-table"><thead><tr><th>#</th><th>SECIM</th><th>OLASILIK</th><th></th><th>MODEL ORAN</th><th>DURUM</th></tr></thead><tbody>'+iymsRows+'</tbody></table>';
-const thresholds={'0.5':65,'1.5':54,'2.5':35,'3.5':22};
+const thresholds={'0.5':65,'1.5':54,'2.5':35,'3.5':22,'2.5':80,'3.5':70};
 const iyOverHtml=Object.entries(iyOver).map(([market,prob])=>{
 const thresh=thresholds[market];
 const passed=prob>=thresh;
@@ -284,20 +290,24 @@ return '<div class="iy-market-row">'
 +'</div>';
 }).join('');
 const noSignal=signals.length===0?'<div class="iy-no-signal">Bu macta IY Alt/Ust icin guclu sinyal uretilemedi.</div>':'';
-const msR=analysis.ms_results||[];
-const msSig=analysis.ms_signals||[];
-const modC=msR.length?'<div class="module-title">MODUL C — MAÇ SONUCU (MS)</div>'
-+'<div style="display:flex;gap:10px;margin-bottom:16px">'
-+msR.map(function(r){
-  var col=r.probability>50?'var(--accent)':r.probability>35?'var(--accent2)':'var(--text)';
-  var sig=msSig.find(function(s){return s.outcome===r.outcome;});
-  return '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">'
-  +'<div style="font-family:IBM Plex Mono,monospace;font-size:20px;font-weight:700;color:'+col+'">'+r.outcome+'</div>'
-  +'<div style="font-size:18px;font-weight:700;color:'+col+';margin:4px 0">%'+r.probability+'</div>'
-  +'<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted)">Oran: '+r.model_odd+'</div>'
-  +(sig?'<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700;margin-top:4px">SINYAL</div>':'')
-  +'</div>';
-}).join('')+'</div>':'';
+var msR=analysis.ms_results||[];
+var msSig=analysis.ms_signals||[];
+var modC='';
+if(msR.length){
+  modC='<div class="module-title">MODUL C — MAÇ SONUCU (MS)</div>'
+  +'<div style="display:flex;gap:10px;margin-bottom:16px">';
+  msR.forEach(function(r){
+    var col=r.probability>50?'var(--accent)':r.probability>35?'var(--accent2)':'var(--text)';
+    var hasSig=msSig.some(function(s){return s.outcome===r.outcome;});
+    modC+='<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">'
+    +'<div style="font-family:IBM Plex Mono,monospace;font-size:20px;font-weight:700;color:'+col+'">'+r.outcome+'</div>'
+    +'<div style="font-size:18px;font-weight:700;color:'+col+';margin:4px 0">%'+r.probability+'</div>'
+    +'<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted)">Oran: '+r.model_odd+'</div>'
+    +(hasSig?'<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700;margin-top:4px">SINYAL</div>':'')
+    +'</div>';
+  });
+  modC+='</div>';
+}
 return lambdaHtml+modC
 +'<div class="analysis-grid">'
 +'<div><div class="module-title">MODUL A — IY/MS</div>'+iymsHtml+'</div>'
