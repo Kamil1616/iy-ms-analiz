@@ -33,7 +33,7 @@ header{background:linear-gradient(135deg,#0d0f14 0%,#111520 100%);border-bottom:
 .fixture-card:hover{border-color:#2a2f3d}
 .fixture-card.has-signal{border-left:3px solid var(--accent)}
 .fixture-card.live-card{border-left:3px solid var(--accent);background:#0d1a12}
-.fixture-header{padding:12px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;background:var(--card-bg);transition:background 0.15s}
+.fixture-header{padding:14px 16px;display:flex;align-items:center;gap:12px;background:var(--card-bg)}
 .fixture-header:hover{background:var(--surface2)}
 .league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
 .teams{flex:1;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
@@ -259,31 +259,28 @@ const msSignals=analysis?.ms_signals||[];
 const hasSignal=signals.length>0||msSignals.length>0;
 const LIVE_ST=['1H','2H','HT','ET','BT','P','INT','LIVE'];
 const FIN_ST=['FT','AET','PEN'];
-const st=f.status||f.fixture_status||'';
+const st=f.status||'';
 const isLive=LIVE_ST.includes(st);
 const isFin=FIN_ST.includes(st);
 const hasScore=f.home_goals!==null&&f.home_goals!==undefined&&f.away_goals!==null&&f.away_goals!==undefined;
-const scoreStr=hasScore?(String(f.home_goals)+' - '+String(f.away_goals)):(isLive?'CANLI':'vs');
-const scoreStyle=isLive?'color:var(--accent);font-weight:700;font-size:15px':isFin?'color:var(--muted)':'color:var(--text)';
-const timeStyle=isLive?'color:var(--accent);font-weight:700':'color:var(--muted)';
+const scoreStr=hasScore?(String(f.home_goals)+' - '+String(f.away_goals)):'vs';
+const scoreColor=isLive?'var(--accent)':isFin?'var(--muted)':'var(--muted)';
 const timeStr=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--';
-const time=isLive?(f.elapsed?f.elapsed+"'":timeStr):timeStr;
+const time=isLive&&f.elapsed?f.elapsed+"'":timeStr;
 const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('')
 +msSignals.map(s=>'<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>').join('');
-const cardClass='fixture-card'+(hasSignal?' has-signal':'')+(isLive?' live-card':'');
-const homeName=f.home_team_name||'?';
-const awayName=f.away_team_name||'?';
+const cardClass='fixture-card'+(hasSignal?' has-signal':'');
 return '<div class="'+cardClass+'" id="card-'+f.fixture_id+'">'
-+'<div class="fixture-header" onclick="toggleAnalysis('+f.fixture_id+')">'
++'<div class="fixture-header">'
 +'<div class="league-badge" title="'+(f.league_name||'')+'">'+( f.league_name||'—')+'</div>'
 +'<div class="teams">'
-+'<span class="team-name">'+homeName+'</span>'
-+'<span class="vs" style="'+scoreStyle+'">'+scoreStr+'</span>'
-+'<span class="team-name">'+awayName+'</span>'
++'<span class="team-name">'+(f.home_team_name||'?')+'</span>'
++'<span class="vs" style="color:'+scoreColor+(isLive?';font-weight:700':'')+'">'+(isLive&&hasScore?'<b>'+scoreStr+'</b>':scoreStr)+'</span>'
++'<span class="team-name">'+(f.away_team_name||'?')+'</span>'
 +'</div>'
 +'<div class="signal-badges">'+signalHtml+'</div>'
-+'<span class="match-time" style="'+timeStyle+'">'+time+'</span>'
-+'<button class="expand-btn" id="expbtn-'+f.fixture_id+'" onclick="event.stopPropagation();loadAnalysis('+f.fixture_id+',\''+currentDate+'\')">'+(analysis?'Analiz':'Analiz Et')+'</button>'
++'<span class="match-time" style="color:'+(isLive?'var(--accent)':'var(--muted)')+(isLive?';font-weight:700':'')+'">'+(isLive?'● ':'')+time+'</span>'
++'<button class="expand-btn" id="expbtn-'+f.fixture_id+'" onclick="loadAnalysis('+f.fixture_id+',\''+currentDate+'\')">'+(analysis?'Analiz':'Analiz Et')+'</button>'
 +'</div>'
 +'<div class="analysis-panel" id="panel-'+f.fixture_id+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>'
 +'</div>';
@@ -345,7 +342,7 @@ return '<tr class="'+divClass+' rank-'+row.rank+'">'
 +'</tr>';
 }).join('');
 const iymsHtml='<table class="iyms-table"><thead><tr><th>#</th><th>SECIM</th><th>OLASILIK</th><th></th><th>MODEL ORAN</th><th>DURUM</th></tr></thead><tbody>'+iymsRows+'</tbody></table>';
-const thresholds={'1.5':90,'2.5':80,'3.5':70};
+const thresholds={'0.5':65,'1.5':54,'2.5':35,'3.5':22};
 const iyOverHtml=Object.entries(iyOver).map(([market,prob])=>{
 const thresh=thresholds[market];
 const passed=prob>=thresh;
@@ -360,7 +357,22 @@ return '<div class="iy-market-row">'
 +'</div>';
 }).join('');
 const noSignal=signals.length===0?'<div class="iy-no-signal">Bu macta IY Alt/Ust icin guclu sinyal uretilemedi.</div>':'';
-return lambdaHtml
+const msResults=analysis.ms_results||[];
+const msSignals=analysis.ms_signals||[];
+const msHtml=msResults.length?('<div class="module-title">MODUL C \u2014 MA\u00c7 SONUCU (MS)</div>'
++'<div style="display:flex;gap:12px;margin-bottom:16px">'
++msResults.map(r=>{
+const color=r.probability>50?'var(--accent)':r.probability>35?'var(--accent2)':'var(--text)';
+const isSig=msSignals.find(s=>s.outcome===r.outcome);
+return '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">'
++'<div style="font-family:IBM Plex Mono,monospace;font-size:22px;font-weight:700;color:'+color+'">'+r.outcome+'</div>'
++'<div style="font-size:20px;font-weight:700;color:'+color+';margin:4px 0">%'+r.probability+'</div>'
++'<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">Oran: '+r.model_odd+'</div>'
++(isSig?'<div style="margin-top:6px;font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700">SINYAL</div>':'')
++'</div>';
+}).join('')
++'</div>'):'';
+return lambdaHtml+msHtml
 +'<div class="analysis-grid">'
 +'<div><div class="module-title">MODUL A \u2014 IY/MS</div>'+iymsHtml+'</div>'
 +'<div><div class="module-title">MODUL B \u2014 IY ALT/UST</div><div>'+iyOverHtml+noSignal+'</div></div>'
