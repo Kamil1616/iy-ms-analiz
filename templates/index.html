@@ -32,14 +32,14 @@ header{background:linear-gradient(135deg,#0d0f14 0%,#111520 100%);border-bottom:
 .fixture-card{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;transition:border-color 0.2s}
 .fixture-card:hover{border-color:#2a2f3d}
 .fixture-card.has-signal{border-left:3px solid var(--accent)}
-.fixture-card.live-card{border-left:3px solid var(--accent);background:#0d1a12}
-.fixture-header{padding:14px 16px;display:flex;align-items:center;gap:12px;background:var(--card-bg)}
+.fixture-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;background:var(--card-bg);transition:background 0.15s}
 .fixture-header:hover{background:var(--surface2)}
-.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
-.teams{flex:1;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
-.team-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.league-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);background:var(--surface2);padding:3px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0}
+.teams{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.teams-row{display:flex;align-items:center;gap:8px}
+.team-name{font-size:14px;font-weight:500}
 .vs{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0}
-.match-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.match-time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0}
 .signal-badges{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
 .signal-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(0,255,135,0.12);color:var(--accent);border:1px solid rgba(0,255,135,0.3)}
 .expand-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0}
@@ -157,80 +157,17 @@ document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString(
 document.getElementById('fixtureList').innerHTML='<div class="error-msg">Veri alinamadi: '+e.message+'</div>';
 }}
 
-const LEAGUE_ID_MAP=[
-{country:'🏆 Avrupa Kupaları',leagues:[{id:2,name:'UEFA Champions League'},{id:3,name:'UEFA Europa League'},{id:848,name:'UEFA Conference League'}]},
-{country:'İngiltere',leagues:[{id:39,name:'Premier League'},{id:40,name:'Championship'},{id:41,name:'League One'},{id:42,name:'League Two'}]},
-{country:'İspanya',leagues:[{id:140,name:'La Liga'},{id:141,name:'La Liga2'}]},
-{country:'İtalya',leagues:[{id:135,name:'Serie A'},{id:136,name:'Serie B'}]},
-{country:'Almanya',leagues:[{id:78,name:'Bundesliga'},{id:79,name:'2. Bundesliga'}]},
-{country:'Fransa',leagues:[{id:61,name:'Ligue 1'},{id:62,name:'Ligue 2'}]},
-{country:'Türkiye',leagues:[{id:203,name:'Süper Lig'},{id:204,name:'TFF 1. Lig'}]},
-{country:'Hollanda',leagues:[{id:88,name:'Eredivisie'},{id:89,name:'Eerste Divisie'}]},
-{country:'Portekiz',leagues:[{id:94,name:'Primeira Liga'},{id:95,name:'Segunda Liga'}]},
-{country:'Belçika',leagues:[{id:144,name:'First Division A'}]},
-{country:'Avusturya',leagues:[{id:218,name:'Austrian Football Bundesliga'}]},
-{country:'Polonya',leagues:[{id:106,name:'Ekstraklasa'},{id:107,name:'I Liga'}]},
-{country:'Romanya',leagues:[{id:283,name:'Liga I'}]},
-{country:'Rusya',leagues:[{id:235,name:'Premier League'}]},
-{country:'İskoçya',leagues:[{id:179,name:'Premiership'},{id:180,name:'Championship'}]},
-{country:'Yunanistan',leagues:[{id:197,name:'Super League'}]},
-{country:'İsveç',leagues:[{id:113,name:'Allsvenskan'},{id:114,name:'Superettan'}]},
-{country:'Danimarka',leagues:[{id:119,name:'Superliga'}]},
-{country:'Norveç',leagues:[{id:103,name:'Eliteserien'},{id:104,name:'1. divisjon'}]},
-{country:'İsviçre',leagues:[{id:207,name:'Super League'},{id:208,name:'Challenge League'}]},
-{country:'Macaristan',leagues:[{id:271,name:'OTP Bank Liga'}]},
-{country:'Slovakya',leagues:[{id:332,name:'Super Liga'}]},
-{country:'Slovenya',leagues:[{id:348,name:'PrvaLiga'}]},
-{country:'Sırbistan',leagues:[{id:286,name:'Super Liga'}]},
-{country:'Hırvatistan',leagues:[{id:210,name:'HNL'},{id:211,name:'Prva NL'}]},
-{country:'Bulgaristan',leagues:[{id:172,name:'First Professional League'},{id:173,name:'Second Professional League'}]},
-{country:'Çekya',leagues:[{id:345,name:'Czech Liga'}]},
-{country:'Karadağ',leagues:[{id:296,name:'Prva CFL'}]},
-{country:'K. Makedonya',leagues:[{id:299,name:'1. MFL'}]},
-{country:'Letonya',leagues:[{id:371,name:'Virsliga'}]},
-{country:'Litvanya',leagues:[{id:365,name:'A Lyga'}]},
-{country:'Estonya',leagues:[{id:322,name:'Meistriliiga'},{id:323,name:'Esiliiga'}]},
-{country:'Finlandiya',leagues:[{id:244,name:'Veikkausliiga'}]},
-{country:'Lüksemburg',leagues:[{id:364,name:'National Division'}]},
-{country:'Malta',leagues:[{id:356,name:'Premier League'}]},
-{country:'İrlanda',leagues:[{id:357,name:'Premier Division'},{id:358,name:'First Division'}]},
-{country:'Kuzey İrlanda',leagues:[{id:381,name:'NIFL Premiership'}]},
-{country:'Galler',leagues:[{id:389,name:'Cymru Premier'}]},
-{country:'Gürcistan',leagues:[{id:255,name:'Erovnuli Liga'}]},
-{country:'Japonya',leagues:[{id:98,name:'J1 League'},{id:99,name:'J2 League'}]},
-{country:'G. Kore',leagues:[{id:292,name:'K League 1'},{id:293,name:'K League 2'}]},
-{country:'Çin',leagues:[{id:169,name:'Super League'},{id:170,name:'China League One'}]},
-{country:'Endonezya',leagues:[{id:253,name:'Liga 1'}]},
-{country:'Avustralya',leagues:[{id:188,name:'A-League Men'}]},
-{country:'Singapur',leagues:[{id:382,name:'Singapore Premier League'}]},
-{country:'Meksika',leagues:[{id:262,name:'Liga MX'},{id:263,name:'Ascenso MX'}]},
-];
+const BIG_LEAGUES=['UEFA Champions League','UEFA Europa League','UEFA Conference League','Premier League','La Liga','Serie A','Bundesliga','Ligue 1','S\u00fcper Lig','Eredivisie','Primeira Liga','Championship','Serie B','2. Bundesliga','Liga NOS'];
 
 function populateLeagueFilter(fixtures){
 const sel=document.getElementById('filterLeague');
 const current=sel.value;
-const allIds=new Set(fixtures.map(f=>f.league_id).filter(Boolean));
-const allNames=new Set(fixtures.map(f=>f.league_name).filter(Boolean));
-const usedIds=new Set();
-let opts='<option value="">Tüm Ligler ('+allNames.size+')</option>';
-LEAGUE_ID_MAP.forEach(({country,leagues})=>{
-const found=leagues.filter(l=>allIds.has(l.id));
-if(!found.length)return;
-opts+='<optgroup label="'+country+'">';
-found.forEach(l=>{
-usedIds.add(l.id);
-opts+='<option value="'+l.id+'"'+(String(l.id)===current?' selected':'')+'>  '+l.name+'</option>';
-});
-opts+='</optgroup>';
-});
-const otherMap={};
-fixtures.filter(f=>f.league_id&&!usedIds.has(f.league_id)).forEach(f=>{otherMap[f.league_id]=f.league_name;});
-const otherSorted=Object.entries(otherMap).sort((a,b)=>a[1].localeCompare(b[1]));
-if(otherSorted.length){
-opts+='<optgroup label="── Diğer Ligler ──">';
-otherSorted.forEach(([id,name])=>{opts+='<option value="'+id+'"'+(id===current?' selected':'')+'>'+name+'</option>';});
-opts+='</optgroup>';
-}
+const all=[...new Set(fixtures.map(f=>f.league_name).filter(Boolean))];
+const big=BIG_LEAGUES.filter(l=>all.includes(l));
+const other=all.filter(l=>!BIG_LEAGUES.includes(l)).sort();
+let opts='<option value="">Tum Ligler ('+all.length+')</option>';
+if(big.length){opts+='<optgroup label="\u2500\u2500 B\u00fcy\u00fck Ligler \u2500\u2500">'+big.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('')+'</optgroup>';}
+if(other.length){opts+='<optgroup label="\u2500\u2500 Diger Ligler \u2500\u2500">'+other.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('')+'</optgroup>';}
 sel.innerHTML=opts;
 }
 
@@ -240,7 +177,7 @@ const signalOnly=document.getElementById('signalFilter').value==='signal';
 const league=document.getElementById('filterLeague').value;
 let filtered=fixtures.filter(f=>{
 const nameMatch=!search||f.home_team_name?.toLowerCase().includes(search)||f.away_team_name?.toLowerCase().includes(search);
-const leagueMatch=!league||String(f.league_id)===String(league);
+const leagueMatch=!league||f.league_name===league;
 const analysis=analysisCache[f.fixture_id];
 const hasSignal=analysis?.iy_signals?.length>0;
 if(signalOnly&&!hasSignal)return false;
@@ -257,40 +194,37 @@ const analysis=analysisCache[f.fixture_id];
 const signals=analysis?.iy_signals||[];
 const msSignals=analysis?.ms_signals||[];
 const hasSignal=signals.length>0||msSignals.length>0;
-const LIVE_ST=['1H','2H','HT','ET','BT','P','INT','LIVE'];
-const FIN_ST=['FT','AET','PEN'];
-const st=f.status||'';
-const isLive=LIVE_ST.includes(st);
-const isFin=FIN_ST.includes(st);
+const isLive=['1H','2H','HT','ET','BT','P','INT','LIVE'].includes(f.status||'');
 const hasScore=f.home_goals!==null&&f.home_goals!==undefined&&f.away_goals!==null&&f.away_goals!==undefined;
-const scoreStr=hasScore?(String(f.home_goals)+' - '+String(f.away_goals)):'vs';
-const scoreColor=isLive?'var(--accent)':isFin?'var(--muted)':'var(--muted)';
-const timeStr=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--';
-const time=isLive&&f.elapsed?f.elapsed+"'":timeStr;
-const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('')
-+msSignals.map(s=>'<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>').join('');
-const cardClass='fixture-card'+(hasSignal?' has-signal':'');
-return '<div class="'+cardClass+'" id="card-'+f.fixture_id+'">'
-+'<div class="fixture-header">'
-+'<div class="league-badge" title="'+(f.league_name||'')+'">'+( f.league_name||'—')+'</div>'
-+'<div class="teams">'
-+'<span class="team-name">'+(f.home_team_name||'?')+'</span>'
-+'<span class="vs" style="color:'+scoreColor+(isLive?';font-weight:700':'')+'">'+(isLive&&hasScore?'<b>'+scoreStr+'</b>':scoreStr)+'</span>'
-+'<span class="team-name">'+(f.away_team_name||'?')+'</span>'
+const scoreStr=hasScore?f.home_goals+' - '+f.away_goals:'';
+const timeDisplay=isLive&&f.elapsed?'\u25cf '+f.elapsed+"'":(f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'--:--');
+const timeColor=isLive?'var(--accent)':'var(--muted)';
+const signalHtml=signals.map(s=>'<span class="signal-badge">'+s.market+'</span>').join('')+msSignals.map(s=>'<span class="signal-badge" style="background:rgba(0,194,255,0.12);color:var(--accent2);border-color:rgba(0,194,255,0.3)">MS:'+s.outcome+'</span>').join('');
+const fid=f.fixture_id;
+const cd=currentDate;
+return '<div class="fixture-card'+(hasSignal?' has-signal':'')+'\" id=\"card-'+fid+'\">'
++'<div class="fixture-header" onclick="toggleAnalysis('+fid+',\''+cd+'\')">'
++'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
++'<span class="league-badge">'+(f.league_name||'\u2014')+'</span>'
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:'+timeColor+'">'+timeDisplay+'</span>'
++(scoreStr?'<span style="font-family:IBM Plex Mono,monospace;font-size:13px;color:var(--accent);font-weight:700">'+scoreStr+'</span>':'')
++'<span style="margin-left:auto;display:flex;gap:4px">'+signalHtml+'</span>'
 +'</div>'
-+'<div class="signal-badges">'+signalHtml+'</div>'
-+'<span class="match-time" style="color:'+(isLive?'var(--accent)':'var(--muted)')+(isLive?';font-weight:700':'')+'">'+(isLive?'● ':'')+time+'</span>'
-+'<button class="expand-btn" id="expbtn-'+f.fixture_id+'" onclick="loadAnalysis('+f.fixture_id+',\''+currentDate+'\')">'+(analysis?'Analiz':'Analiz Et')+'</button>'
++'<div style="display:flex;align-items:center;gap:8px">'
++'<span style="font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.home_team_name||'?')+'</span>'
++'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);flex-shrink:0">vs</span>'
++'<span style="font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+(f.away_team_name||'?')+'</span>'
 +'</div>'
-+'<div class="analysis-panel" id="panel-'+f.fixture_id+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>'
++'</div>'
++'<div class="analysis-panel" id="panel-'+fid+'">'+(analysis?buildAnalysisHtml(f,analysis):'')+'</div>'
 +'</div>';
 }
 
-async function toggleAnalysis(fixtureId){
+async function toggleAnalysis(fixtureId,date){
 const panel=document.getElementById('panel-'+fixtureId);
 if(!panel)return;
 if(!panel.classList.contains('open')){
-if(!analysisCache[fixtureId]){await loadAnalysis(fixtureId,currentDate,true);}
+if(!analysisCache[fixtureId]){await loadAnalysis(fixtureId,date||currentDate,true);}
 else{panel.classList.add('open');}
 }else{panel.classList.remove('open');}
 }
@@ -333,7 +267,7 @@ const barW=Math.min(100,pct*3.5);
 const divClass=row.divider?'divider':'';
 const color=pct>20?'var(--accent)':pct>12?'var(--accent2)':'var(--text)';
 return '<tr class="'+divClass+' rank-'+row.rank+'">'
-+'<td style="color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px;width:24px">'+row.rank+'</td>'
++'<td style="color:var(--muted);font-family:IBM Plex Mono,monospace;font-size:11px;width:24px">'+row.rank+'</td>'
 +'<td class="selection-cell">'+row.selection+'</td>'
 +'<td class="prob-cell" style="color:'+color+'">%'+pct+'</td>'
 +'<td><div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-bar-fill" style="width:'+barW+'%"></div></div></div></td>'
@@ -370,8 +304,7 @@ return '<div style="flex:1;background:var(--surface2);border:1px solid var(--bor
 +'<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">Oran: '+r.model_odd+'</div>'
 +(isSig?'<div style="margin-top:6px;font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--accent);font-weight:700">SINYAL</div>':'')
 +'</div>';
-}).join('')
-+'</div>'):'';
+}).join('')+'</div>'):'';
 return lambdaHtml+msHtml
 +'<div class="analysis-grid">'
 +'<div><div class="module-title">MODUL A \u2014 IY/MS</div>'+iymsHtml+'</div>'
@@ -405,3 +338,6 @@ loadFixtures();
 </script>
 </body>
 </html>
+"
+    },
+    "message": "index.html lig filtresi ile tam versiyon
