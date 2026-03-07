@@ -1,6 +1,6 @@
 import math
 
-DC_RHO = -0.14
+DC_RHO = -0.13
 LIG_ORT = 1.35      # Lig gol ortalaması
 EV_AVANTAJI = 1.15  # Ev sahibi avantajı katsayısı
 
@@ -205,10 +205,10 @@ def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_s
     ]
 
     return {
-        "lambda_home": lambda_home,
-        "lambda_away": lambda_away,
+        "lambda_home": round(lambda_home, 3),
+        "lambda_away": round(lambda_away, 3),
         "lambda_total": round(lambda_total, 3),
-        "lambda_iy": lambda_iy,
+        "lambda_iy": round(lambda_iy, 3),
         "iyms_results": iyms_results,
         "iy_over_probs": {k: round(v * 100, 1) for k, v in iy_over_probs.items()},
         "iy_signals": get_iy_signals(iy_over_probs),
