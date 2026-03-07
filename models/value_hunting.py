@@ -1,6 +1,6 @@
 import math
 
-DC_RHO = -0.13
+DC_RHO = -0.14
 
 def poisson_prob(lam, k):
     if lam <= 0:
@@ -122,7 +122,7 @@ def compute_iy_over_probs(lambda_iy):
         "3.5": p_at_least(lambda_iy, 4),
     }
 
-SIGNAL_THRESHOLDS = {"0.5": 0.75, "1.5": 0.60, "2.5": 0.45, "3.5": 0.30}
+SIGNAL_THRESHOLDS = {"0.5": 0.65, "1.5": 0.54, "2.5": 0.35, "3.5": 0.22}
 
 def get_iy_signals(iy_over_probs):
     signals = []
