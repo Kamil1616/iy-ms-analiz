@@ -53,6 +53,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .filter-select option,.filter-select optgroup{background:#1a1d24;color:var(--text)}
 .signal-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap}
 .signal-btn.active{background:rgba(255,215,0,0.15);border-color:var(--signal);color:var(--signal)}
+.live-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap;position:relative}
+.live-btn.active{background:rgba(255,50,50,0.15);border-color:#ff3232;color:#ff3232}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#ff3232;display:inline-block;margin-right:5px;animation:livepulse 1.2s infinite}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* STATS BAR */
 .stats-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
@@ -173,6 +177,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <option value="">🌍 Tüm Ligler</option>
     </select>
     <button class="signal-btn" id="signalBtn" onclick="toggleSignalFilter()">⚡ Sinyaller</button>
+    <button class="live-btn" id="liveBtn" onclick="toggleLiveFilter()"><span class="live-dot"></span>Canlı</button>
   </div>
 
   <!-- STATS BAR -->
@@ -244,6 +249,18 @@ fetch('/api/dates')
   });
 
 // ─── SIGNAL FILTER ───────────────────────────────────────────────────────────
+var liveFilterOn = false;
+function toggleLiveFilter() {
+  liveFilterOn = !liveFilterOn;
+  var btn = document.getElementById('liveBtn');
+  if(liveFilterOn){
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
+  renderFixtures(allFixtures);
+}
+
 function toggleSignalFilter() {
   signalFilterActive = !signalFilterActive;
   var btn = document.getElementById('signalBtn');
@@ -325,6 +342,12 @@ function populateLeagueFilter(fixtures) {
 // ─── RENDER FIXTURES ─────────────────────────────────────────────────────────
 function renderFixtures(fixtures) {
   var search = document.getElementById('filterTeam').value.toLowerCase();
+  // Canlı filtre
+  if(liveFilterOn){
+    list = list.filter(function(f){
+      return ['1H','2H','HT','ET','P','BT','INT'].indexOf(f.status) !== -1;
+    });
+  }
   var league = document.getElementById('filterLeague').value;
   var filtered = fixtures.filter(function(f) {
     var nameMatch = !search || (f.home_team_name||'').toLowerCase().includes(search) || (f.away_team_name||'').toLowerCase().includes(search);
@@ -364,7 +387,11 @@ function buildFixtureCard(f) {
   var isLive = ['1H','2H','HT','ET','BT','P','INT','LIVE'].indexOf(f.status||'')>=0;
   var hasScore = f.home_goals!==null && f.home_goals!==undefined && f.away_goals!==null && f.away_goals!==undefined;
 
-  var t = f.date ? new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+  var t = '--:--';
+  if(f.date){
+    var d = new Date(f.date);
+    t = d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Istanbul'});
+  }
   var timeStr = isLive && f.elapsed ? '\u25CF '+f.elapsed+"'" : t;
   var timeClass = isLive ? 'match-time live' : 'match-time';
 
