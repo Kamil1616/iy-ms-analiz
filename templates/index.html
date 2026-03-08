@@ -342,14 +342,11 @@ function populateLeagueFilter(fixtures) {
 // ─── RENDER FIXTURES ─────────────────────────────────────────────────────────
 function renderFixtures(fixtures) {
   var search = document.getElementById('filterTeam').value.toLowerCase();
-  // Canlı filtre
-  if(liveFilterOn){
-    list = list.filter(function(f){
-      return ['1H','2H','HT','ET','P','BT','INT'].indexOf(f.status) !== -1;
-    });
-  }
   var league = document.getElementById('filterLeague').value;
-  var filtered = fixtures.filter(function(f) {
+  var filtered = list.filter(function(f) {
+    if(liveFilterOn){
+      if(['1H','2H','HT','ET','P','BT','INT','LIVE'].indexOf(f.status) === -1) return false;
+    }
     var nameMatch = !search || (f.home_team_name||'').toLowerCase().includes(search) || (f.away_team_name||'').toLowerCase().includes(search);
     var leagueMatch = !league || f.league_name === league;
     if(!nameMatch || !leagueMatch) return false;
