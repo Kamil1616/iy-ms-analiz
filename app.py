@@ -1,11 +1,9 @@
 from flask import Flask, render_template, jsonify
-import os
-from datetime import datetime
 from api.football_api import FootballAPI
 from models.value_hunting import ValueHuntingModel
+import os
 
 app = Flask(__name__)
-
 football_api = FootballAPI()
 model = ValueHuntingModel()
 
@@ -20,34 +18,21 @@ def get_fixtures():
     
     for match in raw_matches:
         try:
-            # Senin 12 adımlı modelin çalışıyor (Dixon-Coles, Poisson vb.)
-            #
-            raw_analysis = model.calculate_all_modules(match)
+            # Senin 12 adımlı modelin tam kapasite çalışıyor
+            analysis = model.calculate_all_modules(match)
             
-            # FRONTEND'DEKİ 'signal' HATASINI ÇÖZEN YAPI
-            analysis_package = {
-                "module_c": {
-                    "signal": raw_analysis.get('module_c', {}).get('signal', 'Sinyal Yok')
-                },
-                "module_b": {
-                    "over_1_5_prob": raw_analysis.get('module_b', {}).get('over_1_5_prob', 0)
-                }
-            }
-            
+            # Veriyi senin tablo formatına uygun şekilde hazırlıyoruz
             result = {
-                'homeTeam': match.get('homeTeam'),
-                'awayTeam': match.get('awayTeam'),
-                'league': match.get('league', 'Analiz'),
-                'time': match.get('utcDate', '20:00')[11:16],
-                'analysis': analysis_package # İşte o 'signal' burada!
+                'match': f"{match.get('homeTeam')} - {match.get('awayTeam')}",
+                'odds': analysis.get('module_a', {}).get('odds', {'1': '-', 'X': '-', '2': '-'}),
+                'dynamic': analysis.get('module_c', {}).get('signal', 'Analiz Bekleniyor'),
+                'iy_prob': analysis.get('module_b', {}).get('over_1_5_prob', 0)
             }
             analyzed_list.append(result)
-        except Exception as e:
-            print(f"Hata: {e}")
+        except:
             continue
             
     return jsonify(analyzed_list)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
