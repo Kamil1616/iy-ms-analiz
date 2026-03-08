@@ -15,33 +15,38 @@ def index():
 
 @app.route('/api/dates')
 def get_dates():
-    # Arayüzün tarih listesini doldurması için
     return jsonify([datetime.now().strftime('%Y-%m-%d')])
 
 @app.route('/api/fixtures')
 def get_fixtures():
-    # 1. Önce API'den veya Fallback'ten maçları al
     raw_matches = football_api.get_daily_matches()
-    
     analyzed_list = []
     
-    # 2. Maçları analiz et ve arayüzün (JS) beklediği formatta paketle
     for match in raw_matches:
         try:
-            # Model hesaplamalarını yap (Poisson, Dixon-Coles vb.)
+            # Value Hunting analizini yap (Modül A, B, C)
             analysis = model.calculate_all_modules(match)
             
-            # ARAYÜZÜN BEKLEDİĞİ KRİTİK ALANLAR (Hata buradaydı)
+            # ARAYÜZÜN HER İHTİMALİNİ KAPSIYORUZ
             result = {
+                # Ev Sahibi (Her iki formatta)
                 'homeTeam': match.get('homeTeam'),
+                'home_team': match.get('homeTeam'),
+                
+                # Deplasman (Her iki formatta)
                 'awayTeam': match.get('awayTeam'),
-                'league': match.get('league', 'Analiz Ligi'),
+                'away_team': match.get('awayTeam'),
+                
+                # Diğer Bilgiler
+                'league': match.get('league', 'Analiz'),
+                'competition': match.get('league', 'Analiz'),
                 'time': match.get('utcDate', '20:00')[11:16],
-                'analysis': analysis # Modül A, B, C verileri burada
+                
+                # Analiz Verileri
+                'analysis': analysis
             }
             analyzed_list.append(result)
         except Exception as e:
-            print(f"Maç analiz hatası: {e}")
             continue
             
     return jsonify(analyzed_list)
