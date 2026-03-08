@@ -51,10 +51,12 @@ def default_stats():
 def get_fixtures_fd(date):
     """football-data.org'dan maç listesi"""
     try:
+        from datetime import datetime as dt2, timedelta
+        date_plus = (dt2.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
         r = requests.get(
             f"{FD_URL}/matches",
             headers=FD_HEADERS,
-            params={"dateFrom": date, "dateTo": date},
+            params={"dateFrom": date, "dateTo": date_plus},
             timeout=30
         )
         if r.status_code != 200:
