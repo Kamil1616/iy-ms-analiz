@@ -1,7 +1,8 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from api.football_api import FootballAPI
 from models.value_hunting import ValueHuntingModel
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 football_api = FootballAPI()
@@ -11,19 +12,26 @@ model = ValueHuntingModel()
 def index():
     return render_template('index.html')
 
-@app.route('/api/analyze')
-def analyze():
-    # 1. API'den maçları çek
-    raw_matches = football_api.get_daily_matches()
+# Loglarda görünen eksik adres 1: Tarih listesi
+@app.route('/api/dates')
+def get_dates():
+    # Arayüzün hata vermemesi için bugün ve yarını dönüyoruz
+    today = datetime.now().strftime('%Y-%m-%d')
+    return jsonify([today])
+
+# Loglarda görünen eksik adres 2: Maç fikstürü ve Analiz
+@app.route('/api/fixtures')
+def get_fixtures():
+    date = request.args.get('date')
+    raw_matches = football_api.get_daily_matches() # Tarih parametresini istersen api'ye iletebilirsin
     
     if not raw_matches:
         return jsonify([])
 
-    # 2. Maçları Value Hunting (A, B ve C Modülleri) ile analiz et
     analyzed_list = []
     for match in raw_matches:
-        # Modelin içinde Modül C hesaplamalarının da olduğundan emin oluyoruz
-        analysis = model.calculate_all_modules(match) 
+        # Modül A, B ve C'yi içeren yeni fonksiyonu çağırıyoruz
+        analysis = model.calculate_all_modules(match)
         analyzed_list.append(analysis)
     
     return jsonify(analyzed_list)
