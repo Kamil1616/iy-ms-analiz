@@ -159,8 +159,127 @@ document.getElementById('fixtureList').innerHTML='<div class="error-msg">Veri al
 function populateLeagueFilter(fixtures){
 const sel=document.getElementById('filterLeague');
 const current=sel.value;
-const leagues=[...new Set(fixtures.map(f=>f.league_name).filter(Boolean))].sort();
-sel.innerHTML='<option value="">Tum Ligler</option>'+leagues.map(l=>'<option value="'+l+'"'+(l===current?' selected':'')+'>'+l+'</option>').join('');
+
+// Lig adı → bayrak + görünen isim
+const LEAGUE_META={
+  // TOP LİGLER
+  'UEFA Champions League':     {flag:'🏆', label:'UEFA Champions League', order:1},
+  'UEFA Europa League':        {flag:'🏆', label:'UEFA Europa League', order:2},
+  'UEFA Europa Conference League':{flag:'🏆', label:'UEFA Conference League', order:3},
+  'Premier League':            {flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', label:'Premier League', order:4},
+  'La Liga':                   {flag:'🇪🇸', label:'La Liga', order:5},
+  'Serie A':                   {flag:'🇮🇹', label:'Serie A', order:6},
+  'Bundesliga':                {flag:'🇩🇪', label:'Bundesliga', order:7},
+  'Ligue 1':                   {flag:'🇫🇷', label:'Ligue 1', order:8},
+  'Süper Lig':                 {flag:'🇹🇷', label:'Süper Lig', order:9},
+  // 2. Ligler
+  'Championship':              {flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', label:'Championship'},
+  'League One':                {flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', label:'League One'},
+  'League Two':                {flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', label:'League Two'},
+  'La Liga 2':                 {flag:'🇪🇸', label:'La Liga 2'},
+  'Serie B':                   {flag:'🇮🇹', label:'Serie B'},
+  '2. Bundesliga':             {flag:'🇩🇪', label:'2. Bundesliga'},
+  'Ligue 2':                   {flag:'🇫🇷', label:'Ligue 2'},
+  'TFF 1. Lig':                {flag:'🇹🇷', label:'TFF 1. Lig'},
+  // Diğerleri alfabetik
+  'Allsvenskan':               {flag:'🇸🇪', label:'Allsvenskan'},
+  'Superettan':                {flag:'🇸🇪', label:'Superettan'},
+  'A-League':                  {flag:'🇦🇺', label:'A-League'},
+  'Bundesliga':                {flag:'🇦🇹', label:'Österreich Bundesliga'},
+  'Pro League':                {flag:'🇧🇪', label:'Pro League'},
+  'Parva Liga':                {flag:'🇧🇬', label:'Parva Liga'},
+  'Second League':             {flag:'🇧🇬', label:'Bulgaria 2. Lig'},
+  'Czech Liga':                {flag:'🇨🇿', label:'Czech Liga'},
+  'Super League':              {flag:'🇨🇳', label:'CSL'},
+  'League One':                {flag:'🇨🇳', label:'China League One'},
+  'Superliga':                 {flag:'🇩🇰', label:'Superliga'},
+  'Meistriliiga':              {flag:'🇪🇪', label:'Meistriliiga'},
+  'Esiliiga':                  {flag:'🇪🇪', label:'Esiliiga'},
+  'Veikkausliiga':             {flag:'🇫🇮', label:'Veikkausliiga'},
+  'Cymru Premier':             {flag:'🏴󠁧󠁢󠁷󠁬󠁳󠁿', label:'Cymru Premier'},
+  'Erovnuli Liga':             {flag:'🇬🇪', label:'Erovnuli Liga'},
+  'Eredivisie':                {flag:'🇳🇱', label:'Eredivisie'},
+  'Eerste Divisie':            {flag:'🇳🇱', label:'Eerste Divisie'},
+  'HNL':                       {flag:'🇭🇷', label:'HNL'},
+  '2. HNL':                    {flag:'🇭🇷', label:'2. HNL'},
+  'Liga 1':                    {flag:'🇷🇴', label:'Liga 1'},
+  'League of Ireland':         {flag:'🇮🇪', label:'LOI Premier'},
+  'First Division':            {flag:'🇮🇪', label:'LOI First'},
+  'Premiership':               {flag:'🏴󠁧󠁢󠁳󠁣󠁴󠁿', label:'Scottish Premiership'},
+  'Scottish Championship':     {flag:'🏴󠁧󠁢󠁳󠁣󠁴󠁿', label:'Scottish Championship'},
+  'Super League':              {flag:'🇨🇭', label:'Swiss Super League'},
+  'Challenge League':          {flag:'🇨🇭', label:'Swiss Challenge League'},
+  'J1 League':                 {flag:'🇯🇵', label:'J1 League'},
+  'J2 League':                 {flag:'🇯🇵', label:'J2 League'},
+  'K League 1':                {flag:'🇰🇷', label:'K League 1'},
+  'K League 2':                {flag:'🇰🇷', label:'K League 2'},
+  'Montenegrin League':        {flag:'🇲🇪', label:'Montenegrin League'},
+  'NIFL Premiership':          {flag:'🇬🇧', label:'N. Ireland Prem'},
+  'NIFL Championship':         {flag:'🇬🇧', label:'N. Ireland Champ'},
+  'MFL':                       {flag:'🇲🇰', label:'Kuzey Makedonya'},
+  'Virsliga':                  {flag:'🇱🇻', label:'Virsliga'},
+  'A Lyga':                    {flag:'🇱🇹', label:'A Lyga'},
+  'BGL Ligue':                 {flag:'🇱🇺', label:'BGL Ligue'},
+  'Nemzeti Bajnokság I':       {flag:'🇭🇺', label:'Magyar Liga'},
+  'Premier League':            {flag:'🇲🇹', label:'Malta PL'},
+  'Liga MX':                   {flag:'🇲🇽', label:'Liga MX'},
+  'Ascenso MX':                {flag:'🇲🇽', label:'Ascenso MX'},
+  'Eliteserien':               {flag:'🇳🇴', label:'Eliteserien'},
+  '1. divisjon':               {flag:'🇳🇴', label:'Norway 2. Lig'},
+  'Ekstraklasa':               {flag:'🇵🇱', label:'Ekstraklasa'},
+  'I Liga':                    {flag:'🇵🇱', label:'I Liga'},
+  'Primeira Liga':             {flag:'🇵🇹', label:'Primeira Liga'},
+  'Liga Portugal 2':           {flag:'🇵🇹', label:'Liga Portugal 2'},
+  'Premier League':            {flag:'🇷🇺', label:'Russian PL'},
+  'Super Liga':                {flag:'🇷🇸', label:'Super Liga'},
+  'Super Liga':                {flag:'🇸🇰', label:'Slovak SL'},
+  'PrvaLiga':                  {flag:'🇸🇮', label:'PrvaLiga'},
+  'Singapore Premier League':  {flag:'🇸🇬', label:'Singapore PL'},
+  'Super League':              {flag:'🇬🇷', label:'Greek SL'},
+};
+
+const TOP_ORDER=['UEFA Champions League','UEFA Europa League','UEFA Europa Conference League',
+  'Premier League','La Liga','Serie A','Bundesliga','Ligue 1','Süper Lig'];
+
+const leagues=[...new Set(fixtures.map(f=>f.league_name).filter(Boolean))];
+
+// Top ligler önce, sonra alfabetik
+const topLeagues=leagues.filter(l=>TOP_ORDER.includes(l)).sort((a,b)=>{
+  const oa=(LEAGUE_META[a]?.order||99);
+  const ob=(LEAGUE_META[b]?.order||99);
+  return oa-ob;
+});
+const otherLeagues=leagues.filter(l=>!TOP_ORDER.includes(l)).sort();
+
+sel.innerHTML='<option value="">🌍 Tum Ligler</option>';
+
+if(topLeagues.length){
+  const grp=document.createElement('optgroup');
+  grp.label='── Top Ligler ──';
+  topLeagues.forEach(l=>{
+    const m=LEAGUE_META[l];
+    const opt=document.createElement('option');
+    opt.value=l;
+    opt.textContent=(m?m.flag+' '+m.label:l);
+    if(l===current)opt.selected=true;
+    grp.appendChild(opt);
+  });
+  sel.appendChild(grp);
+}
+
+if(otherLeagues.length){
+  const grp=document.createElement('optgroup');
+  grp.label='── Diğer Ligler ──';
+  otherLeagues.forEach(l=>{
+    const m=LEAGUE_META[l];
+    const opt=document.createElement('option');
+    opt.value=l;
+    opt.textContent=(m?m.flag+' '+m.label:l);
+    if(l===current)opt.selected=true;
+    grp.appendChild(opt);
+  });
+  sel.appendChild(grp);
+}
 }
 
 function renderFixtures(fixtures){
