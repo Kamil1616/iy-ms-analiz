@@ -386,9 +386,12 @@ function buildFixtureCard(f) {
 
   var t = '--:--';
   if(f.date){
-    // AllSports +03:00 gonderiyor, direkt HH:MM al
-    var timePart = f.date.split('T')[1];
-    if(timePart) t = timePart.substring(0,5);
+    var d = new Date(f.date);
+    // AllSports UTC+1 gonderiyor, Turkiye UTC+3, fark +2 saat
+    d = new Date(d.getTime() + 2*60*60*1000);
+    var hh = String(d.getUTCHours()).padStart(2,'0');
+    var mm = String(d.getUTCMinutes()).padStart(2,'0');
+    t = hh + ':' + mm;
   }
   var timeStr = isLive && f.elapsed ? '\u25CF '+f.elapsed+"'" : t;
   var timeClass = isLive ? 'match-time live' : 'match-time';
