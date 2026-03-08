@@ -260,7 +260,8 @@ function buildAnalysisHtml(fixture,analysis){
 const iyms=analysis.iyms_results||[];
 const signals=analysis.iy_signals||[];
 const iyOver=analysis.iy_over_probs||{};
-const lambdaHtml='<div class="lambda-row">'
+const warn=analysis.data_warning?'<div style="background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--warn)">⚠ Takim istatistigi alinamadi, varsayilan degerler kullanildi</div>':'';
+const lambdaHtml=warn+'<div class="lambda-row">'
 +'<div class="lambda-chip">\u03bb Ev: <span>'+analysis.lambda_home+'</span></div>'
 +'<div class="lambda-chip">\u03bb Dep: <span>'+analysis.lambda_away+'</span></div>'
 +'<div class="lambda-chip">\u03bb Total: <span>'+analysis.lambda_total+'</span></div>'
