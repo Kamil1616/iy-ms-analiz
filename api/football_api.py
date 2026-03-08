@@ -57,7 +57,7 @@ def get_fixtures_allsports(date):
             result.append({
                 "fixture": {
                     "id": int(m.get("event_key", 0)),
-                    "date": m.get("event_date", date) + "T" + m.get("event_time", "00:00") + ":00+03:00",
+                    "date": m.get("event_date", date) + "T" + m.get("event_time", "00:00") + ":00+01:00",
                     "status": {"short": status, "elapsed": elapsed}
                 },
                 "teams": {
