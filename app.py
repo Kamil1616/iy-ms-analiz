@@ -1,44 +1,51 @@
-import requests
+from flask import Flask, render_template, jsonify, request
 import os
+from datetime import datetime
+from api.football_api import FootballAPI
+from models.value_hunting import ValueHuntingModel
 
-class FootballAPI:
-    def __init__(self):
-        self.api_key = os.environ.get('FOOTBALL_API_KEY')
-        self.base_url = 'https://api.football-data.org/v4'
-        self.headers = {'X-Auth-Token': self.api_key}
+# 1. GUNICORN'UN BULABİLMESİ İÇİN APP NESNESİ BURADA OLMALI
+app = Flask(__name__)
 
-    def get_daily_matches(self):
-        try:
-            # Gerçek API'den veri çekmeyi dene
-            response = requests.get(f"{self.base_url}/matches", headers=self.headers)
-            
-            if response.status_code == 200:
-                data = response.json()
-                matches = []
-                for match in data.get('matches', []):
-                    matches.append({
-                        'homeTeam': match['homeTeam']['name'],
-                        'awayTeam': match['awayTeam']['name'],
-                        'league': match['competition']['name'],
-                        'utcDate': match['utcDate']
-                    })
-                
-                # Eğer API başarılı ama maç listesi boşsa (Bugün büyük liglerde maç yoksa)
-                if not matches:
-                    return self.get_fake_test_data("API Başarılı - Bugün Maç Yok")
-                return matches
-            else:
-                # API Key geçersizse veya limit dolmuşsa burası çalışır
-                return self.get_fake_test_data(f"API Hatası (Kod: {response.status_code})")
-                
-        except Exception as e:
-            return self.get_fake_test_data(f"Bağlantı Hatası: {str(e)}")
+# Modülleri başlat
+football_api = FootballAPI()
+model = ValueHuntingModel()
 
-    def get_fake_test_data(self, message):
-        """Arayüzün çalıştığını kanıtlamak için sahte maç verisi."""
-        return [{
-            'homeTeam': f"TEST: {message}",
-            'awayTeam': "DENEME-DEP",
-            'league': "TEST LİGİ",
-            'utcDate': "2026-03-08T20:30:00Z"
-        }]
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/dates')
+def get_dates():
+    today = datetime.now().strftime('%Y-%m-%d')
+    return jsonify([today])
+
+@app.route('/api/fixtures')
+def get_fixtures():
+    # API'den verileri çek
+    raw_matches = football_api.get_daily_matches()
+    
+    if not raw_matches:
+        return jsonify([])
+
+    analyzed_list = []
+    for match in raw_matches:
+        # Value Hunting analizini yap
+        analysis = model.calculate_all_modules(match)
+        
+        # Frontend için gerekli alanları eşle
+        analysis['league'] = match.get('league', 'Diğer')
+        analysis['homeTeam'] = match.get('homeTeam')
+        analysis['awayTeam'] = match.get('awayTeam')
+        # Saat formatını ayarla (20:30 gibi)
+        if 'utcDate' in match:
+            analysis['time'] = match['utcDate'][11:16]
+        
+        analyzed_list.append(analysis)
+    
+    return jsonify(analyzed_list)
+
+# Render için port ayarı
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
