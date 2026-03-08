@@ -387,8 +387,8 @@ function buildFixtureCard(f) {
   var t = '--:--';
   if(f.date){
     var d = new Date(f.date);
-    // AllSports UTC+1 gonderiyor, Turkiye UTC+3, fark +2 saat
-    d = new Date(d.getTime() + 2*60*60*1000);
+    // AllSports UTC+0 gonderiyor, Turkiye UTC+3, fark +3 saat
+    d = new Date(d.getTime() + 3*60*60*1000);
     var hh = String(d.getUTCHours()).padStart(2,'0');
     var mm = String(d.getUTCMinutes()).padStart(2,'0');
     t = hh + ':' + mm;
