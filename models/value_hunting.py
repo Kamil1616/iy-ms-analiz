@@ -204,6 +204,14 @@ def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_s
         for o in ["1", "X", "2"]
     ]
 
+    # En olası skorlar (top 3)
+    ft_matrix = score_matrix(lambda_home, lambda_away)
+    top_scores = sorted(ft_matrix.items(), key=lambda x: x[1], reverse=True)[:3]
+    score_probs = {
+        f"{h}-{a}": round(p * 100, 1)
+        for (h, a), p in top_scores
+    }
+
     return {
         "lambda_home": round(lambda_home, 3),
         "lambda_away": round(lambda_away, 3),
@@ -214,4 +222,5 @@ def run_analysis(home_stats_general, home_stats_home, away_stats_general, away_s
         "iy_signals": get_iy_signals(iy_over_probs),
         "ms_results": ms_results,
         "ms_signals": get_ms_signals(ms_probs),
+        "score_probs": score_probs,
     }
