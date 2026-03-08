@@ -3,19 +3,15 @@ import os
 
 class FootballAPI:
     def __init__(self):
-        # Render panelindeki anahtarı çekiyoruz
         self.api_key = os.environ.get('FOOTBALL_API_KEY')
         self.base_url = 'https://api.football-data.org/v4'
         self.headers = {'X-Auth-Token': self.api_key}
 
     def get_daily_matches(self):
         try:
-            # Ücretsiz planda tüm maçlar gelmeyebilir, 
-            # bu yüzden belirli bir tarih aralığı veya lig kısıtlaması olmadan çekiyoruz
+            # Önce gerçek API'den çekmeyi deniyoruz
             endpoint = f"{self.base_url}/matches"
             response = requests.get(endpoint, headers=self.headers)
-            
-            print(f"DEBUG: API Status Code: {response.status_code}") # Render loglarında göreceğiz
             
             if response.status_code == 200:
                 data = response.json()
@@ -27,11 +23,23 @@ class FootballAPI:
                         'league': match['competition']['name'],
                         'utcDate': match['utcDate']
                     })
-                print(f"DEBUG: Bulunan Maç Sayısı: {len(matches)}")
+                
+                # Eğer API başarılı ama maç listesi boşsa (ücretsiz plan kısıtı)
+                if not matches:
+                    return self.get_test_data("API Başarılı Ama Maç Yok (Ücretsiz Plan)")
                 return matches
             else:
-                print(f"DEBUG: API Hatası: {response.text}")
-                return []
+                # API hatası (403/429 vb.) durumunda test verisi göster
+                return self.get_test_data(f"API Hatası (Kod: {response.status_code})")
+                
         except Exception as e:
-            print(f"DEBUG: Bağlantı Hatası: {str(e)}")
-            return []
+            return self.get_test_data(f"Bağlantı Hatası: {str(e)}")
+
+    def get_test_data(self, reason):
+        """Veri gelmediğinde sistemin çalıştığını kanıtlayan test verisi."""
+        return [{
+            'homeTeam': f"TEST-EV ({reason})",
+            'awayTeam': "TEST-DEP",
+            'league': "TEST LİGİ",
+            'utcDate': "2026-03-08T20:30:00Z"
+        }]
