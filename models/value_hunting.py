@@ -130,7 +130,7 @@ def compute_iy_over_probs(lambda_iy):
         "3.5": p_at_least(lambda_iy, 4),
     }
 
-SIGNAL_THRESHOLDS = {"0.5": 0.65, "1.5": 0.54, "2.5": 0.35, "3.5": 0.22}
+SIGNAL_THRESHOLDS = {"0.5": 0.68, "1.5": 0.55, "2.5": 0.42, "3.5": 0.30}
 MS_SIGNAL_THRESHOLDS = {"1": 0.55, "X": 0.35, "2": 0.50}
 
 def get_iy_signals(iy_over_probs):
