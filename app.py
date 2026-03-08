@@ -13,22 +13,21 @@ def index():
 
 @app.route('/api/analyze')
 def analyze():
-    # 1. Güncel maç verilerini API'den çek
+    # 1. API'den maçları çek
     raw_matches = football_api.get_daily_matches()
     
     if not raw_matches:
         return jsonify([])
 
-    # 2. Her maçı Value Hunting modeline sok
+    # 2. Maçları Value Hunting (A, B ve C Modülleri) ile analiz et
     analyzed_list = []
     for match in raw_matches:
-        # Modelin hesaplama fonksiyonunu çağırıyoruz
-        analysis = model.calculate_value(match)
+        # Modelin içinde Modül C hesaplamalarının da olduğundan emin oluyoruz
+        analysis = model.calculate_all_modules(match) 
         analyzed_list.append(analysis)
     
     return jsonify(analyzed_list)
 
 if __name__ == '__main__':
-    # Render.com için port ayarı
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
