@@ -42,6 +42,8 @@ def get_fixtures_for_date(date_str):
             "league_name": league.get("name"),
             "season": league.get("season"),
         })
+    # Saate gore sirala
+    fixtures.sort(key=lambda x: x.get("date") or "")
     cache.set(f"fixtures_{date_str}", fixtures)
     return fixtures
 
