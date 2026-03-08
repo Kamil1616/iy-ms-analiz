@@ -81,6 +81,10 @@ def api_analyze(fixture_id):
         home_stats = get_team_stats(fix["home_team_id"], league_id, season)
         away_stats = get_team_stats(fix["away_team_id"], league_id, season)
 
+        # Default stats kullanılıyorsa uyar
+        home_is_default = home_stats["general"]["goals_scored"] == 27
+        away_is_default = away_stats["general"]["goals_scored"] == 27
+
         analysis = run_analysis(
             home_stats_general=home_stats["general"],
             home_stats_home=home_stats["home"],
@@ -89,6 +93,7 @@ def api_analyze(fixture_id):
             home_stats=home_stats,
             away_stats=away_stats,
         )
+        analysis["data_warning"] = home_is_default or away_is_default
         cache.set(analysis_key, analysis)
         return jsonify({"fixture": fix, "analysis": analysis})
     except Exception as e:
@@ -138,6 +143,38 @@ def clear_cache():
         os.makedirs(cache_dir, exist_ok=True)
     return jsonify({"status": "ok", "message": "Cache temizlendi"})
 
+
+@app.route("/api/clear-cache", methods=["POST","GET"])
+def clear_cache():
+    import shutil
+    cache_dir = "instance/cache"
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir)
+        os.makedirs(cache_dir, exist_ok=True)
+    return jsonify({"status": "ok", "message": "Cache temizlendi"})
+
+
+@app.route("/api/debug")
+def api_debug():
+    import requests as req
+    date = datetime.now().strftime("%Y-%m-%d")
+    key = os.environ.get("API_FOOTBALL_KEY","")
+    host = os.environ.get("API_FOOTBALL_HOST","v3.football.api-sports.io")
+    try:
+        r = req.get(f"https://{host}/fixtures",
+                    headers={"x-rapidapi-key": key, "x-rapidapi-host": host},
+                    params={"date": date, "timezone": "Europe/Istanbul"}, timeout=15)
+        data = r.json()
+        return jsonify({
+            "status": r.status_code,
+            "results": data.get("results", 0),
+            "errors": data.get("errors", {}),
+            "date": date,
+            "key_set": bool(key),
+            "remaining": r.headers.get("x-ratelimit-requests-remaining","?")
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 @app.route("/api/dates")
 def api_dates():
