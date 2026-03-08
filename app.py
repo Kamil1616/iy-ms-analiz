@@ -155,20 +155,23 @@ def clear_cache():
 def api_debug():
     import requests as req
     date = datetime.now().strftime("%Y-%m-%d")
-    key = os.environ.get("API_FOOTBALL_KEY","")
-    host = os.environ.get("API_FOOTBALL_HOST","v3.football.api-sports.io")
+    key = os.environ.get("FOOTBALL_API_KEY","") or os.environ.get("FOOTBALL_DATA_KEY","")
     try:
-        r = req.get(f"https://{host}/fixtures",
-                    headers={"x-rapidapi-key": key, "x-rapidapi-host": host},
-                    params={"date": date, "timezone": "Europe/Istanbul"}, timeout=15)
+        r = req.get(
+            "https://api.football-data.org/v4/matches",
+            headers={"X-Auth-Token": key},
+            params={"dateFrom": date, "dateTo": date},
+            timeout=15
+        )
         data = r.json()
+        matches = data.get("matches", [])
         return jsonify({
             "status": r.status_code,
-            "results": data.get("results", 0),
-            "errors": data.get("errors", {}),
+            "results": len(matches),
+            "errors": data.get("message","") if r.status_code != 200 else {},
             "date": date,
             "key_set": bool(key),
-            "remaining": r.headers.get("x-ratelimit-requests-remaining","?")
+            "remaining": r.headers.get("X-Requests-Available-Minute","?")
         })
     except Exception as e:
         return jsonify({"error": str(e)})
