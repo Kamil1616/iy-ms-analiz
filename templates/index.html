@@ -343,7 +343,7 @@ function populateLeagueFilter(fixtures) {
 function renderFixtures(fixtures) {
   var search = document.getElementById('filterTeam').value.toLowerCase();
   var league = document.getElementById('filterLeague').value;
-  var filtered = list.filter(function(f) {
+  var filtered = fixtures.filter(function(f) {
     if(liveFilterOn){
       if(['1H','2H','HT','ET','P','BT','INT','LIVE'].indexOf(f.status) === -1) return false;
     }
