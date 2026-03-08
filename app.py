@@ -82,7 +82,7 @@ def api_analyze(fixture_id):
         if cached:
             return jsonify({"fixture": fix, "analysis": cached})
 
-        season = fix.get("season") or 2024
+        season = fix.get("season") or 2025
         league_id = fix.get("league_id") or 39
 
         home_stats = get_team_stats(fix["home_team_id"], league_id, season)
@@ -120,7 +120,7 @@ def api_analyze_all():
                 if cached:
                     results.append({"fixture": fix, "analysis": cached})
                     continue
-                season = fix.get("season") or 2024
+                season = fix.get("season") or 2025
                 league_id = fix.get("league_id") or 39
                 home_stats = get_team_stats(fix["home_team_id"], league_id, season)
                 away_stats = get_team_stats(fix["away_team_id"], league_id, season)
