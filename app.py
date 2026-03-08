@@ -13,10 +13,6 @@ model = ValueHuntingModel()
 def index():
     return render_template('index.html')
 
-@app.route('/api/dates')
-def get_dates():
-    return jsonify([datetime.now().strftime('%Y-%m-%d')])
-
 @app.route('/api/fixtures')
 def get_fixtures():
     raw_matches = football_api.get_daily_matches()
@@ -24,29 +20,30 @@ def get_fixtures():
     
     for match in raw_matches:
         try:
-            # Value Hunting analizini yap (Modül A, B, C)
-            analysis = model.calculate_all_modules(match)
+            # Senin 12 adımlı modelin çalışıyor (Dixon-Coles, Poisson vb.)
+            #
+            raw_analysis = model.calculate_all_modules(match)
             
-            # ARAYÜZÜN HER İHTİMALİNİ KAPSIYORUZ
+            # FRONTEND'DEKİ 'signal' HATASINI ÇÖZEN YAPI
+            analysis_package = {
+                "module_c": {
+                    "signal": raw_analysis.get('module_c', {}).get('signal', 'Sinyal Yok')
+                },
+                "module_b": {
+                    "over_1_5_prob": raw_analysis.get('module_b', {}).get('over_1_5_prob', 0)
+                }
+            }
+            
             result = {
-                # Ev Sahibi (Her iki formatta)
                 'homeTeam': match.get('homeTeam'),
-                'home_team': match.get('homeTeam'),
-                
-                # Deplasman (Her iki formatta)
                 'awayTeam': match.get('awayTeam'),
-                'away_team': match.get('awayTeam'),
-                
-                # Diğer Bilgiler
                 'league': match.get('league', 'Analiz'),
-                'competition': match.get('league', 'Analiz'),
                 'time': match.get('utcDate', '20:00')[11:16],
-                
-                # Analiz Verileri
-                'analysis': analysis
+                'analysis': analysis_package # İşte o 'signal' burada!
             }
             analyzed_list.append(result)
         except Exception as e:
+            print(f"Hata: {e}")
             continue
             
     return jsonify(analyzed_list)
