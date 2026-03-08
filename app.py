@@ -21,15 +21,8 @@ def get_fixtures_for_date(date_str):
     if cached:
         return cached
     raw = get_fixtures(date_str)
-    ALLOWED = {2,3,39,40,41,42,61,62,78,79,88,89,94,95,98,99,103,104,106,107,
-               113,114,119,135,136,140,141,144,169,170,172,173,179,180,188,197,
-               198,203,204,207,208,210,211,218,235,244,253,262,263,271,283,286,
-               292,293,296,299,323,330,331,332,345,348,356,357,358,431,462,463,
-               667,848}
     fixtures = []
     for f in raw:
-        if f.get("league", {}).get("id") not in ALLOWED:
-            continue
         fix = f.get("fixture", {})
         teams = f.get("teams", {})
         goals = f.get("goals", {})
