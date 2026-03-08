@@ -386,8 +386,9 @@ function buildFixtureCard(f) {
 
   var t = '--:--';
   if(f.date){
-    var d = new Date(f.date);
-    t = d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Istanbul'});
+    // AllSports +03:00 gonderiyor, direkt HH:MM al
+    var timePart = f.date.split('T')[1];
+    if(timePart) t = timePart.substring(0,5);
   }
   var timeStr = isLive && f.elapsed ? '\u25CF '+f.elapsed+"'" : t;
   var timeClass = isLive ? 'match-time live' : 'match-time';
