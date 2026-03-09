@@ -173,7 +173,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   <!-- CONTROLS -->
   <div class="controls">
     <input class="filter-input" id="filterTeam" placeholder="Takım ara..." oninput="renderFixtures(allFixtures)">
-    <select class="filter-select" id="filterLeague" multiple onchange="onLeagueChange()" size="1">
+    <select class="filter-select" id="filterLeague" multiple onchange="onLeagueChange()">
       <option value="">🌍 Tüm Ligler</option>
     </select>
     <button class="signal-btn" id="signalBtn" onclick="toggleSignalFilter()">⚡ Sinyaller</button>
