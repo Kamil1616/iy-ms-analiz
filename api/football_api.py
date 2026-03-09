@@ -312,7 +312,7 @@ def stats_from_allsports(matches, team_id):
         else:
             away_scored.append(gf)
             away_conceded.append(ga)
-    if not scored_all:
+    if len(scored_all) < 6:
         return None
     lig_ort = 1.35
     avg_sh = sum(home_scored) / max(len(home_scored), 1)
