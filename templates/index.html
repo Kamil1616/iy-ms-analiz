@@ -408,7 +408,7 @@ function buildFixtureCard(f) {
 
   return '<div class="fixture-card' + (hasSignal?' has-signal':'') + '" id="card-'+f.fixture_id+'">' +
     '<div class="fixture-header">' +
-      '<img class="team-logo" src="'+homeLogoUrl+'" alt="" onerror="this.style.visibility='hidden';this.style.minWidth='28px'">' +
+      '<img class="team-logo" src="'+homeLogoUrl+'" alt="" onerror="this.style.display=\'none\'">' +
       '<div class="teams-block">' +
         '<span class="team-name">'+esc(f.home_team_name||'?')+'</span>' +
         '<div class="match-center">' +
@@ -417,7 +417,7 @@ function buildFixtureCard(f) {
         '</div>' +
         '<span class="team-name away">'+esc(f.away_team_name||'?')+'</span>' +
       '</div>' +
-      '<img class="team-logo" src="'+awayLogoUrl+'" alt="" onerror="this.style.visibility='hidden';this.style.minWidth='28px'">' +
+      '<img class="team-logo" src="'+awayLogoUrl+'" alt="" onerror="this.style.display=\'none\'">' +
     '</div>' +
     '<div class="card-meta">' +
       '<span class="league-badge">'+esc(f.league_name||'')+'</span>' +
