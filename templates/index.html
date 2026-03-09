@@ -173,7 +173,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   <!-- CONTROLS -->
   <div class="controls">
     <input class="filter-input" id="filterTeam" placeholder="Takım ara..." oninput="renderFixtures(allFixtures)">
-    <select class="filter-select" id="filterLeague" multiple onchange="onLeagueChange()">
+    <select class="filter-select" id="filterLeague" onchange="renderFixtures(allFixtures)">
       <option value="">🌍 Tüm Ligler</option>
     </select>
     <button class="signal-btn" id="signalBtn" onclick="toggleSignalFilter()">⚡ Sinyaller</button>
@@ -195,7 +195,6 @@ var allFixtures = [];
 var analysisCache = {};
 var currentDate = '';
 var signalFilterActive = false;
-var selectedLeagues = new Set();
 
 // ─── DATE TABS ───────────────────────────────────────────────────────────────
 function buildDateTabs(dates) {
@@ -349,7 +348,8 @@ function renderFixtures(fixtures) {
       if(['1H','2H','HT','ET','P','BT','INT','LIVE'].indexOf(f.status) === -1) return false;
     }
     var nameMatch = !search || (f.home_team_name||'').toLowerCase().includes(search) || (f.away_team_name||'').toLowerCase().includes(search);
-    var leagueMatch = selectedLeagues.size===0 || selectedLeagues.has(f.league_name);
+    var league = document.getElementById('filterLeague').value;
+    var leagueMatch = !league || f.league_name === league;
     if(!nameMatch || !leagueMatch) return false;
     if(signalFilterActive) {
       var a = analysisCache[f.fixture_id];
