@@ -136,6 +136,60 @@ def api_analyze_all():
         return jsonify({"error": str(e)}), 500
 
 
+
+@app.route("/api/signals")
+def api_signals():
+    date = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
+    try:
+        fixtures = get_fixtures_for_date(date)
+        signals = []
+        import time
+        deadline = time.time() + 25
+        for fix in fixtures:
+            if time.time() > deadline:
+                break
+            try:
+                analysis_key = f"analysis_{fix['fixture_id']}"
+                cached = cache.get(analysis_key, ttl_minutes=60)
+                if cached:
+                    analysis = cached
+                else:
+                    season = fix.get("season") or 2025
+                    league_id = fix.get("league_id") or 39
+                    home_stats = get_team_stats(fix["home_team_id"], league_id, season)
+                    away_stats = get_team_stats(fix["away_team_id"], league_id, season)
+                    analysis = run_analysis(
+                        home_stats_general=home_stats["general"],
+                        home_stats_home=home_stats["home"],
+                        away_stats_general=away_stats["general"],
+                        away_stats_away=away_stats["away"],
+                        home_stats=home_stats,
+                        away_stats=away_stats,
+                    )
+                    cache.set(analysis_key, analysis)
+
+                iy_sigs = analysis.get("iy_signals", [])
+                ms_sigs = analysis.get("ms_signals", [])
+                if iy_sigs or ms_sigs:
+                    signals.append({
+                        "fixture": fix,
+                        "iy_signals": iy_sigs,
+                        "ms_signals": ms_sigs,
+                        "iyms_top": (analysis.get("iyms_results") or [{}])[0],
+                        "lambda_home": analysis.get("lambda_home"),
+                        "lambda_away": analysis.get("lambda_away"),
+                    })
+            except:
+                continue
+        return jsonify({
+            "date": date,
+            "total_analyzed": len(fixtures),
+            "signal_count": len(signals),
+            "signals": signals
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/clear-cache", methods=["POST","GET"])
 def clear_cache():
     import shutil
