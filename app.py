@@ -38,8 +38,7 @@ def get_fixtures_for_date(date_str):
             "away_team_name": teams.get("away", {}).get("name"),
             "home_goals": goals.get("home"),
             "away_goals": goals.get("away"),
-            "home_ht_goals": fix.get("ht_goals", {}).get("home"),
-            "away_ht_goals": fix.get("ht_goals", {}).get("away"),
+
             "league_id": league.get("id"),
             "league_name": league.get("name"),
             "season": league.get("season"),
@@ -257,4 +256,3 @@ def api_dates():
 if __name__ == "__main__":
     os.makedirs("instance/cache", exist_ok=True)
     app.run(debug=True, port=5000)
-        
