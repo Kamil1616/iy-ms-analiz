@@ -572,56 +572,6 @@ function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function downloadReport() {
-  var rows = [];
-  rows.push(['Tarih','Lig','Ev Takımı','Dep Takımı','Gerçek Sonuç','IY Sinyaller','MS Sinyaller','IY/MS #1','IY/MS #1 Olasılık','IY/MS #1 Oran','IY 0.5 Üst %','IY 1.5 Üst %','IY 2.5 Üst %','IY 3.5 Üst %','MS 1 %','MS X %','MS 2 %'].join(','));
-  
-  allFixtures.forEach(function(f) {
-    var a = analysisCache[f.fixture_id];
-    if(!a) return;
-    
-    var gercek = (f.home_goals !== null && f.away_goals !== null) ? f.home_goals + '-' + f.away_goals : 'NS';
-    var iySig = (a.iy_signals||[]).map(function(s){return s.market;}).join('|') || '-';
-    var msSig = (a.ms_signals||[]).map(function(s){return 'MS:'+s.outcome;}).join('|') || '-';
-    var top = (a.iyms_results||[])[0] || {};
-    var ms = a.ms_results || [];
-    var ms1 = ms.find(function(m){return m.outcome==='1';}) || {};
-    var msX = ms.find(function(m){return m.outcome==='X';}) || {};
-    var ms2 = ms.find(function(m){return m.outcome==='2';}) || {};
-    var iy = a.iy_over_probs || {};
-    
-    var row = [
-      f.date ? f.date.substring(0,10) : '',
-      '"' + (f.league_name||'') + '"',
-      '"' + (f.home_team_name||'') + '"',
-      '"' + (f.away_team_name||'') + '"',
-      gercek,
-      '"' + iySig + '"',
-      '"' + msSig + '"',
-      top.selection || '-',
-      top.probability || '-',
-      top.model_odd || '-',
-      iy['0.5'] || '-',
-      iy['1.5'] || '-',
-      iy['2.5'] || '-',
-      iy['3.5'] || '-',
-      ms1.probability || '-',
-      msX.probability || '-',
-      ms2.probability || '-'
-    ];
-    rows.push(row.join(','));
-  });
-  
-  var csv = rows.join('
-');
-  var blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'iyms-rapor-' + currentDate + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
 </script>
 </body>
 </html>
