@@ -253,17 +253,9 @@ def get_fixtures_fd(date):
         return []
 
 def get_team_stats(team_id, league_id, season, team_name=None):
-    # 1. Sofascore dene (limitsiz)
-    if team_name:
-        stats = get_team_stats_sofascore(team_name)
-        if stats and stats["general"]["goals_scored"] > 0:
-            print(f"Sofascore OK: {team_name}")
-            return stats
-    # 2. AllSports dene
     stats = get_team_stats_allsports(team_id)
     if stats and stats["general"]["goals_scored"] > 0:
         return stats
-    # 3. Default
     return default_stats()
 
 def get_team_stats_allsports(team_id):
@@ -344,4 +336,5 @@ def stats_from_allsports(matches, team_id):
         },
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
-    }
+                    }
+    
