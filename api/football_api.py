@@ -173,12 +173,22 @@ def get_fixtures_allsports(date):
         for m in matches:
             home_goals = None
             away_goals = None
+            home_ht_goals = None
+            away_ht_goals = None
             final = m.get("event_final_result", "")
             if final and " - " in final:
                 parts = final.split(" - ")
                 try:
                     home_goals = int(parts[0].strip())
                     away_goals = int(parts[1].strip())
+                except:
+                    pass
+            ht = m.get("event_halftime_result", "")
+            if ht and " - " in ht:
+                ht_parts = ht.split(" - ")
+                try:
+                    home_ht_goals = int(ht_parts[0].strip())
+                    away_ht_goals = int(ht_parts[1].strip())
                 except:
                     pass
             status_raw = str(m.get("event_status", ""))
@@ -205,6 +215,7 @@ def get_fixtures_allsports(date):
                     "away": {"id": int(m.get("away_team_key", 0)), "name": m.get("event_away_team", "")}
                 },
                 "goals": {"home": home_goals, "away": away_goals},
+                "ht_goals": {"home": home_ht_goals, "away": away_ht_goals},
                 "league": {
                     "id": int(m.get("league_key", 0)),
                     "name": m.get("league_name", ""),
@@ -336,5 +347,4 @@ def stats_from_allsports(matches, team_id):
         },
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
-                    }
-    
+    }
