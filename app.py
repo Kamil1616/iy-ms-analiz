@@ -108,7 +108,7 @@ def api_analyze_all():
     try:
         fixtures = get_fixtures_for_date(date)
         results = []
-        for fix in fixtures[:50]:
+        for fix in fixtures:
             try:
                 analysis_key = f"analysis_{fix['fixture_id']}"
                 cached = cache.get(analysis_key, ttl_minutes=60)
