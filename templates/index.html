@@ -55,8 +55,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .signal-btn.active{background:rgba(255,215,0,0.15);border-color:var(--signal);color:var(--signal)}
 .live-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap;position:relative}
 .live-btn.active{background:rgba(255,50,50,0.15);border-color:#ff3232;color:#ff3232}
-.report-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap}
-.report-btn:hover{border-color:var(--accent2);color:var(--accent2)}
 .live-dot{width:7px;height:7px;border-radius:50%;background:#ff3232;display:inline-block;margin-right:5px;animation:livepulse 1.2s infinite}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
@@ -180,7 +178,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     </select>
     <button class="signal-btn" id="signalBtn" onclick="toggleSignalFilter()">⚡ Sinyaller</button>
     <button class="live-btn" id="liveBtn" onclick="toggleLiveFilter()"><span class="live-dot"></span>Canlı</button>
-    <button class="report-btn" onclick="downloadReport()">⬇ Rapor</button>
   </div>
 
   <!-- STATS BAR -->
