@@ -82,7 +82,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .match-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap}
 .match-time.live{color:var(--accent)}
 .match-score{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap}
-.ht-score{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);opacity:0.6;white-space:nowrap}
 .vs-text{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
 
 .card-meta{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px;gap:8px}
@@ -384,4 +383,8 @@ function buildFixtureCard(f) {
   var hasSignal = signals.length>0 || msSignals.length>0;
 
   var isLive = ['1H','2H','HT','ET','BT','P','INT','LIVE'].indexOf(f.status||'')>=0;
-  var hasScore = f.home_goals!==null && f.
+  var hasScore = f.home_goals!==null && f.home_goals!==undefined && f.away_goals!==null && f.away_goals!==undefined;
+
+  var t = '--:--';
+  if(f.date){
+    v
