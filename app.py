@@ -117,8 +117,8 @@ def api_analyze_all():
                     continue
                 season = fix.get("season") or 2025
                 league_id = fix.get("league_id") or 39
-                home_stats = get_team_stats(fix["home_team_id"], league_id, season)
-                away_stats = get_team_stats(fix["away_team_id"], league_id, season)
+                home_stats = get_team_stats(fix["home_team_id"], league_id, season, team_name=fix.get("home_team_name"))
+                away_stats = get_team_stats(fix["away_team_id"], league_id, season, team_name=fix.get("away_team_name"))
                 analysis = run_analysis(
                     home_stats_general=home_stats["general"],
                     home_stats_home=home_stats["home"],
@@ -156,8 +156,8 @@ def api_signals():
                 else:
                     season = fix.get("season") or 2025
                     league_id = fix.get("league_id") or 39
-                    home_stats = get_team_stats(fix["home_team_id"], league_id, season)
-                    away_stats = get_team_stats(fix["away_team_id"], league_id, season)
+                    home_stats = get_team_stats(fix["home_team_id"], league_id, season, team_name=fix.get("home_team_name"))
+                    away_stats = get_team_stats(fix["away_team_id"], league_id, season, team_name=fix.get("away_team_name"))
                     analysis = run_analysis(
                         home_stats_general=home_stats["general"],
                         home_stats_home=home_stats["home"],
@@ -170,6 +170,10 @@ def api_signals():
 
                 iy_sigs = analysis.get("iy_signals", [])
                 ms_sigs = analysis.get("ms_signals", [])
+                min_prob = float(request.args.get("min_prob", 0))
+                if min_prob > 0:
+                    iy_sigs = [s for s in iy_sigs if s.get("probability", 0) >= min_prob]
+                    ms_sigs = [s for s in ms_sigs if s.get("probability", 0) >= min_prob]
                 if iy_sigs or ms_sigs:
                     signals.append({
                         "fixture": fix,
