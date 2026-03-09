@@ -80,8 +80,8 @@ def api_analyze(fixture_id):
         season = fix.get("season") or 2025
         league_id = fix.get("league_id") or 39
 
-        home_stats = get_team_stats(fix["home_team_id"], league_id, season)
-        away_stats = get_team_stats(fix["away_team_id"], league_id, season)
+        home_stats = get_team_stats(fix["home_team_id"], league_id, season, team_name=fix.get("home_team_name"))
+        away_stats = get_team_stats(fix["away_team_id"], league_id, season, team_name=fix.get("away_team_name"))
 
         # Default stats kullanılıyorsa uyar
         home_is_default = home_stats["general"]["goals_scored"] == 27
