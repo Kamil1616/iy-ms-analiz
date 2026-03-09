@@ -9,6 +9,12 @@ FD_KEY = os.environ.get("FOOTBALL_API_KEY", "") or os.environ.get("FOOTBALL_DATA
 FD_URL = "https://api.football-data.org/v4"
 FD_HEADERS = {"X-Auth-Token": FD_KEY}
 
+SOFA_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Android 11; Mobile; rv:109.0) Gecko/109.0 Firefox/109.0",
+    "Accept": "application/json",
+    "Referer": "https://www.sofascore.com/"
+}
+
 def default_stats():
     return {
         "home_attack": 1.0, "home_defence": 1.0,
@@ -20,6 +26,140 @@ def default_stats():
         "home": {"avg_scored": 1.5, "goals_scored": 15, "goals_conceded": 10},
         "away": {"avg_scored": 1.1, "goals_scored": 12, "goals_conceded": 14}
     }
+
+def get_sofascore_team_id(team_name):
+    """Takım adından Sofascore ID bul"""
+    try:
+        r = requests.get(
+            f"https://api.sofascore.com/api/v1/search/all",
+            params={"q": team_name},
+            headers=SOFA_HEADERS,
+            timeout=10
+        )
+        if r.status_code != 200:
+            return None
+        results = r.json().get("results", [])
+        for item in results:
+            if item.get("type") == "team":
+                entity = item.get("entity", {})
+                sport = entity.get("sport", {})
+                gender = entity.get("gender", "M")
+                if sport.get("slug") == "football" and gender == "M":
+                    name = entity.get("name", "").lower()
+                    search = team_name.lower()
+                    if name == search or search in name or name in search:
+                        return entity.get("id")
+        # İlk football takımını dön
+        for item in results:
+            if item.get("type") == "team":
+                entity = item.get("entity", {})
+                if entity.get("sport", {}).get("slug") == "football":
+                    return entity.get("id")
+        return None
+    except Exception as e:
+        print(f"Sofascore search error: {e}")
+        return None
+
+def get_sofascore_events(team_id, page=0):
+    """Sofascore'dan takımın son maçlarını çek"""
+    try:
+        r = requests.get(
+            f"https://api.sofascore.com/api/v1/team/{team_id}/events/last/{page}",
+            headers=SOFA_HEADERS,
+            timeout=10
+        )
+        if r.status_code != 200:
+            return []
+        return r.json().get("events", [])
+    except Exception as e:
+        print(f"Sofascore events error: {e}")
+        return []
+
+def stats_from_sofascore(events, team_id):
+    """Sofascore maç verilerinden stats hesapla"""
+    home_scored, home_conceded = [], []
+    away_scored, away_conceded = [], []
+    scored_all, conceded_all, ht_scored_all = [], [], []
+
+    finished = [e for e in events if e.get("status", {}).get("type") == "finished"]
+    finished = finished[-10:]
+
+    for m in finished:
+        home_team = m.get("homeTeam", {})
+        is_home = home_team.get("id") == team_id
+        hs = m.get("homeScore", {})
+        as_ = m.get("awayScore", {})
+
+        ft_h = hs.get("current")
+        ft_a = as_.get("current")
+        ht_h = hs.get("period1")
+        ht_a = as_.get("period1")
+
+        if ft_h is None or ft_a is None:
+            continue
+
+        gf = ft_h if is_home else ft_a
+        ga = ft_a if is_home else ft_h
+        ht_gf = (ht_h if is_home else ht_a) or 0
+
+        scored_all.append(gf)
+        conceded_all.append(ga)
+        ht_scored_all.append(ht_gf)
+
+        if is_home:
+            home_scored.append(gf)
+            home_conceded.append(ga)
+        else:
+            away_scored.append(gf)
+            away_conceded.append(ga)
+
+    if not scored_all:
+        return None
+
+    lig_ort = 1.35
+    avg_sh = sum(home_scored) / max(len(home_scored), 1)
+    avg_sa = sum(away_scored) / max(len(away_scored), 1)
+    avg_ch = sum(home_conceded) / max(len(home_conceded), 1)
+    avg_ca = sum(away_conceded) / max(len(away_conceded), 1)
+    avg_st = sum(scored_all) / len(scored_all)
+    avg_ct = sum(conceded_all) / len(conceded_all)
+    btts = sum(1 for s, c in zip(scored_all, conceded_all) if s > 0 and c > 0) / len(scored_all)
+    total_ft = sum(scored_all)
+    ht_ratio = max(0.15, min(0.55, sum(ht_scored_all) / total_ft if total_ft > 0 else 0.27))
+
+    return {
+        "home_attack":  round(avg_sh / lig_ort if avg_sh > 0 else 1.0, 4),
+        "home_defence": round(avg_ch / lig_ort if avg_ch > 0 else 1.0, 4),
+        "away_attack":  round(avg_sa / lig_ort if avg_sa > 0 else 1.0, 4),
+        "away_defence": round(avg_ca / lig_ort if avg_ca > 0 else 1.0, 4),
+        "general": {
+            "avg_scored": avg_st, "goals_scored": sum(scored_all),
+            "goals_conceded": sum(conceded_all), "btts_rate": btts,
+            "ht_goal_ratio": ht_ratio, "tempo_score": avg_st + avg_ct
+        },
+        "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
+        "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
+    }
+
+def get_team_stats_sofascore(team_name):
+    """Sofascore'dan takım stats çek"""
+    try:
+        team_id = get_sofascore_team_id(team_name)
+        if not team_id:
+            return None
+        events = get_sofascore_events(team_id, 0)
+        if len(events) < 3:
+            # Daha fazla maç için sayfa 1'e bak
+            events2 = get_sofascore_events(team_id, 1)
+            events = events2 + events
+        if not events:
+            return None
+        return stats_from_sofascore(events, team_id)
+    except Exception as e:
+        print(f"Sofascore team stats error: {e}")
+        return None
+
+# ─── ALLSPORTS ────────────────────────────────────────────────────────────────
 
 def get_fixtures_allsports(date):
     try:
@@ -82,6 +222,49 @@ def get_fixtures(date):
     if fixtures:
         return fixtures
     return get_fixtures_fd(date)
+
+def get_fixtures_fd(date):
+    try:
+        date_plus = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+        r = requests.get(f"{FD_URL}/matches", headers=FD_HEADERS,
+            params={"dateFrom": date, "dateTo": date_plus}, timeout=30)
+        if r.status_code != 200:
+            return []
+        matches = r.json().get("matches", [])
+        result = []
+        for m in matches:
+            comp = m.get("competition", {})
+            home = m.get("homeTeam", {})
+            away = m.get("awayTeam", {})
+            ft = m.get("score", {}).get("fullTime", {})
+            status = m.get("status", "TIMED")
+            st_map = {"IN_PLAY": "1H", "HALFTIME": "HT", "FINISHED": "FT", "TIMED": "NS", "SCHEDULED": "NS"}
+            result.append({
+                "fixture": {"id": m.get("id"), "date": m.get("utcDate"),
+                    "status": {"short": st_map.get(status, "NS"), "elapsed": None}},
+                "teams": {"home": {"id": home.get("id"), "name": home.get("name")},
+                    "away": {"id": away.get("id"), "name": away.get("name")}},
+                "goals": {"home": ft.get("home"), "away": ft.get("away")},
+                "league": {"id": comp.get("id"), "name": comp.get("name"), "season": None}
+            })
+        return result
+    except Exception as e:
+        print(f"FD fixtures error: {e}")
+        return []
+
+def get_team_stats(team_id, league_id, season, team_name=None):
+    # 1. Sofascore dene (limitsiz)
+    if team_name:
+        stats = get_team_stats_sofascore(team_name)
+        if stats and stats["general"]["goals_scored"] > 0:
+            print(f"Sofascore OK: {team_name}")
+            return stats
+    # 2. AllSports dene
+    stats = get_team_stats_allsports(team_id)
+    if stats and stats["general"]["goals_scored"] > 0:
+        return stats
+    # 3. Default
+    return default_stats()
 
 def get_team_stats_allsports(team_id):
     try:
@@ -162,38 +345,3 @@ def stats_from_allsports(matches, team_id):
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
     }
-
-def get_fixtures_fd(date):
-    try:
-        date_plus = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
-        r = requests.get(f"{FD_URL}/matches", headers=FD_HEADERS,
-            params={"dateFrom": date, "dateTo": date_plus}, timeout=30)
-        if r.status_code != 200:
-            return []
-        matches = r.json().get("matches", [])
-        result = []
-        for m in matches:
-            comp = m.get("competition", {})
-            home = m.get("homeTeam", {})
-            away = m.get("awayTeam", {})
-            ft = m.get("score", {}).get("fullTime", {})
-            status = m.get("status", "TIMED")
-            st_map = {"IN_PLAY": "1H", "HALFTIME": "HT", "FINISHED": "FT", "TIMED": "NS", "SCHEDULED": "NS"}
-            result.append({
-                "fixture": {"id": m.get("id"), "date": m.get("utcDate"),
-                    "status": {"short": st_map.get(status, "NS"), "elapsed": None}},
-                "teams": {"home": {"id": home.get("id"), "name": home.get("name")},
-                    "away": {"id": away.get("id"), "name": away.get("name")}},
-                "goals": {"home": ft.get("home"), "away": ft.get("away")},
-                "league": {"id": comp.get("id"), "name": comp.get("name"), "season": None}
-            })
-        return result
-    except Exception as e:
-        print(f"FD fixtures error: {e}")
-        return []
-
-def get_team_stats(team_id, league_id, season):
-    stats = get_team_stats_allsports(team_id)
-    if stats and stats["general"]["goals_scored"] > 0:
-        return stats
-    return default_stats()
