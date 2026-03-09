@@ -181,12 +181,22 @@ def api_signals():
                     })
             except:
                 continue
-        return jsonify({
+        from flask import Response
+        import json
+        download = request.args.get("download", "0")
+        result = {
             "date": date,
             "total_analyzed": len(fixtures),
             "signal_count": len(signals),
             "signals": signals
-        })
+        }
+        if download == "1":
+            return Response(
+                json.dumps(result, ensure_ascii=False, indent=2),
+                mimetype='application/json',
+                headers={"Content-Disposition": f"attachment;filename=signals-{date}.json"}
+            )
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
