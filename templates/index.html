@@ -82,7 +82,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .match-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap}
 .match-time.live{color:var(--accent)}
 .match-score{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap}
-.ht-score{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);opacity:0.7;font-weight:400}
 .vs-text{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
 
 .card-meta{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px;gap:8px}
@@ -414,7 +413,7 @@ function buildFixtureCard(f) {
         '<span class="team-name">'+esc(f.home_team_name||'?')+'</span>' +
         '<div class="match-center">' +
           '<span class="'+timeClass+'">'+timeStr+'</span>' +
-          (hasScore ? '<span class="match-score">'+f.home_goals+' - '+f.away_goals+(f.home_ht_goals!==null&&f.home_ht_goals!==undefined?' <span class="ht-score">(IY:'+f.home_ht_goals+'-'+f.away_ht_goals+')</span>':'')+'</span>' : '<span class="vs-text">VS</span>') +
+          (hasScore ? '<span class="match-score">'+f.home_goals+' - '+f.away_goals+'</span>' : '<span class="vs-text">VS</span>') +
         '</div>' +
         '<span class="team-name away">'+esc(f.away_team_name||'?')+'</span>' +
       '</div>' +
