@@ -108,10 +108,7 @@ def api_analyze_all():
     try:
         fixtures = get_fixtures_for_date(date)
         results = []
-        import time
-        deadline = time.time() + 25
-        for fix in fixtures[:100]:
-            if time.time() > deadline: break
+        for fix in fixtures[:50]:
             try:
                 analysis_key = f"analysis_{fix['fixture_id']}"
                 cached = cache.get(analysis_key, ttl_minutes=60)
