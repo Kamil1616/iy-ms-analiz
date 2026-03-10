@@ -267,6 +267,18 @@ def get_fixtures_fd(date):
         print(f"FD fixtures error: {e}")
         return []
 
+def get_bsd_raw(date_from, date_to):
+    """BSD events raw data - debug için"""
+    try:
+        r = requests.get(f"{BSD_URL}/events/", headers=BSD_HEADERS, params={
+            "date_from": date_from, "date_to": date_to
+        }, timeout=20)
+        if r.status_code != 200:
+            return None, r.status_code
+        return r.json(), 200
+    except Exception as e:
+        return None, str(e)
+
 def get_team_stats_bsd(team_name):
     """Bzzoiro Sports Data API - takım stats"""
     if not team_name:
@@ -282,11 +294,17 @@ def get_team_stats_bsd(team_name):
             return None
         data = r.json()
         events = data if isinstance(data, list) else data.get("results", [])
+        # İlk event'in formatını logla
+        if events:
+            first = events[0]
+            print(f"BSD format sample - keys: {list(first.keys())}, home_team type: {type(first.get('home_team'))}")
         name_lower = team_name.lower()
         team_matches = []
         for e in events:
-            home_name = (e.get("home_team") or {}).get("name", "").lower()
-            away_name = (e.get("away_team") or {}).get("name", "").lower()
+            ht = e.get("home_team")
+            at = e.get("away_team")
+            home_name = (ht.get("name", "") if isinstance(ht, dict) else str(ht or "")).lower()
+            away_name = (at.get("name", "") if isinstance(at, dict) else str(at or "")).lower()
             if name_lower in home_name or home_name in name_lower or                name_lower in away_name or away_name in name_lower:
                 team_matches.append(e)
         if len(team_matches) < 4:
@@ -305,7 +323,8 @@ def stats_from_bsd(matches, team_name):
     finished = [m for m in matches if str(m.get("status","")).lower() in ("finished","ft")]
     finished = finished[-10:]
     for m in finished:
-        home_name = (m.get("home_team") or {}).get("name", "").lower()
+        ht = m.get("home_team")
+        home_name = (ht.get("name", "") if isinstance(ht, dict) else str(ht or "")).lower()
         is_home = name_lower in home_name or home_name in name_lower
         hg = m.get("home_score") or m.get("home_goals") or 0
         ag = m.get("away_score") or m.get("away_goals") or 0
@@ -443,5 +462,5 @@ def stats_from_allsports(matches, team_id):
         },
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
-    }
-    
+                }
+        
