@@ -301,10 +301,9 @@ def get_team_stats_bsd(team_name):
         name_lower = team_name.lower()
         team_matches = []
         for e in events:
-            ht = e.get("home_team")
-            at = e.get("away_team")
-            home_name = (ht.get("name", "") if isinstance(ht, dict) else str(ht or "")).lower()
-            away_name = (at.get("name", "") if isinstance(at, dict) else str(at or "")).lower()
+            # home_team/away_team string, home_team_obj/away_team_obj dict
+            home_name = str(e.get("home_team") or "").lower()
+            away_name = str(e.get("away_team") or "").lower()
             if name_lower in home_name or home_name in name_lower or                name_lower in away_name or away_name in name_lower:
                 team_matches.append(e)
         if len(team_matches) < 4:
@@ -323,13 +322,12 @@ def stats_from_bsd(matches, team_name):
     finished = [m for m in matches if str(m.get("status","")).lower() in ("finished","ft")]
     finished = finished[-10:]
     for m in finished:
-        ht = m.get("home_team")
-        home_name = (ht.get("name", "") if isinstance(ht, dict) else str(ht or "")).lower()
+        home_name = str(m.get("home_team") or "").lower()
         is_home = name_lower in home_name or home_name in name_lower
-        hg = m.get("home_score") or m.get("home_goals") or 0
-        ag = m.get("away_score") or m.get("away_goals") or 0
-        ht_h = m.get("home_ht_score") or m.get("home_halftime") or 0
-        ht_a = m.get("away_ht_score") or m.get("away_halftime") or 0
+        hg = m.get("home_score") or 0
+        ag = m.get("away_score") or 0
+        ht_h = 0
+        ht_a = 0
         try:
             hg, ag, ht_h, ht_a = int(hg), int(ag), int(ht_h), int(ht_a)
         except:
@@ -395,7 +393,14 @@ def get_team_stats_allsports(team_id):
         if r.status_code != 200:
             return None
         matches = r.json().get("result", []) or []
-        finished = [m for m in matches if m.get("event_status") == "Finished" and m.get("event_final_result")]
+        tid = int(team_id)
+        # Sadece bu takımın gerçekten oynadığı maçları al
+        finished = [
+            m for m in matches
+            if m.get("event_status") == "Finished"
+            and m.get("event_final_result")
+            and (int(m.get("home_team_key", 0)) == tid or int(m.get("away_team_key", 0)) == tid)
+        ]
         finished = finished[-10:]
         if not finished:
             return None
@@ -408,9 +413,14 @@ def stats_from_allsports(matches, team_id):
     home_scored, home_conceded = [], []
     away_scored, away_conceded = [], []
     scored_all, conceded_all, ht_scored_all = [], [], []
+    tid = int(team_id)
     for m in matches:
         home_id = int(m.get("home_team_key", 0))
-        is_home = home_id == int(team_id)
+        away_id = int(m.get("away_team_key", 0))
+        # Takım bu maçta oynamıyor mu? Atla
+        if home_id != tid and away_id != tid:
+            continue
+        is_home = home_id == tid
         final = m.get("event_final_result", "")
         if not final or " - " not in final:
             continue
@@ -462,5 +472,4 @@ def stats_from_allsports(matches, team_id):
         },
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
-                }
-        
+                                      }
