@@ -15,6 +15,10 @@ SOFA_HEADERS = {
     "Referer": "https://www.sofascore.com/"
 }
 
+BSD_KEY = os.environ.get("BSD_KEY", "1fa9e71c0de4cbe8dabc210a89028e926532740d")
+BSD_URL = "https://sports.bzzoiro.com/api"
+BSD_HEADERS = {"Authorization": f"Token {BSD_KEY}"}
+
 def default_stats():
     return {
         "home_attack": 1.0, "home_defence": 1.0,
@@ -263,10 +267,99 @@ def get_fixtures_fd(date):
         print(f"FD fixtures error: {e}")
         return []
 
+def get_team_stats_bsd(team_name):
+    """Bzzoiro Sports Data API - takım stats"""
+    if not team_name:
+        return None
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        from_date = (datetime.now() - timedelta(days=270)).strftime("%Y-%m-%d")
+        r = requests.get(f"{BSD_URL}/events/", headers=BSD_HEADERS, params={
+            "date_from": from_date, "date_to": today
+        }, timeout=20)
+        if r.status_code != 200:
+            print(f"BSD events error: {r.status_code}")
+            return None
+        data = r.json()
+        events = data if isinstance(data, list) else data.get("results", [])
+        name_lower = team_name.lower()
+        team_matches = []
+        for e in events:
+            home_name = (e.get("home_team") or {}).get("name", "").lower()
+            away_name = (e.get("away_team") or {}).get("name", "").lower()
+            if name_lower in home_name or home_name in name_lower or                name_lower in away_name or away_name in name_lower:
+                team_matches.append(e)
+        if len(team_matches) < 4:
+            return None
+        return stats_from_bsd(team_matches, team_name)
+    except Exception as e:
+        print(f"BSD team stats error: {e}")
+        return None
+
+def stats_from_bsd(matches, team_name):
+    """BSD maçlarından stats hesapla"""
+    home_scored, home_conceded = [], []
+    away_scored, away_conceded = [], []
+    scored_all, conceded_all, ht_scored_all = [], [], []
+    name_lower = team_name.lower()
+    finished = [m for m in matches if str(m.get("status","")).lower() in ("finished","ft")]
+    finished = finished[-10:]
+    for m in finished:
+        home_name = (m.get("home_team") or {}).get("name", "").lower()
+        is_home = name_lower in home_name or home_name in name_lower
+        hg = m.get("home_score") or m.get("home_goals") or 0
+        ag = m.get("away_score") or m.get("away_goals") or 0
+        ht_h = m.get("home_ht_score") or m.get("home_halftime") or 0
+        ht_a = m.get("away_ht_score") or m.get("away_halftime") or 0
+        try:
+            hg, ag, ht_h, ht_a = int(hg), int(ag), int(ht_h), int(ht_a)
+        except:
+            continue
+        gf = hg if is_home else ag
+        ga = ag if is_home else hg
+        ht_gf = ht_h if is_home else ht_a
+        scored_all.append(gf)
+        conceded_all.append(ga)
+        ht_scored_all.append(ht_gf)
+        if is_home:
+            home_scored.append(gf); home_conceded.append(ga)
+        else:
+            away_scored.append(gf); away_conceded.append(ga)
+    if len(scored_all) < 4:
+        return None
+    lig_ort = 1.35
+    avg_sh = sum(home_scored) / max(len(home_scored), 1)
+    avg_sa = sum(away_scored) / max(len(away_scored), 1)
+    avg_ch = sum(home_conceded) / max(len(home_conceded), 1)
+    avg_ca = sum(away_conceded) / max(len(away_conceded), 1)
+    avg_st = sum(scored_all) / len(scored_all)
+    avg_ct = sum(conceded_all) / len(conceded_all)
+    btts = sum(1 for s, c in zip(scored_all, conceded_all) if s > 0 and c > 0) / len(scored_all)
+    total_ft = sum(scored_all)
+    ht_ratio = max(0.15, min(0.55, sum(ht_scored_all) / total_ft if total_ft > 0 else 0.27))
+    return {
+        "home_attack":  round(avg_sh / lig_ort if avg_sh > 0 else 1.0, 4),
+        "home_defence": round(avg_ch / lig_ort if avg_ch > 0 else 1.0, 4),
+        "away_attack":  round(avg_sa / lig_ort if avg_sa > 0 else 1.0, 4),
+        "away_defence": round(avg_ca / lig_ort if avg_ca > 0 else 1.0, 4),
+        "general": {
+            "avg_scored": avg_st, "goals_scored": sum(scored_all),
+            "goals_conceded": sum(conceded_all), "btts_rate": btts,
+            "ht_goal_ratio": ht_ratio, "tempo_score": avg_st + avg_ct
+        },
+        "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
+        "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
+    }
+
 def get_team_stats(team_id, league_id, season, team_name=None):
     stats = get_team_stats_allsports(team_id)
     if stats and stats["general"]["goals_scored"] > 0:
         return stats
+    if team_name:
+        bsd = get_team_stats_bsd(team_name)
+        if bsd:
+            print(f"BSD stats: {team_name}")
+            return bsd
     return default_stats()
 
 def get_team_stats_allsports(team_id):
