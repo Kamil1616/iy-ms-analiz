@@ -352,14 +352,17 @@ def stats_from_bsd(matches, team_name):
     }
 
 def get_team_stats(team_id, league_id, season, team_name=None):
-    stats = get_team_stats_allsports(team_id)
-    if stats and stats["general"]["goals_scored"] > 0:
-        return stats
+    # Önce BSD dene (daha güvenilir)
     if team_name:
         bsd = get_team_stats_bsd(team_name)
         if bsd:
             print(f"BSD stats: {team_name}")
             return bsd
+    # BSD başarısız → AllSports
+    stats = get_team_stats_allsports(team_id)
+    if stats and stats["general"]["goals_scored"] > 0:
+        print(f"AllSports stats: {team_id}")
+        return stats
     return default_stats()
 
 def get_team_stats_allsports(team_id):
@@ -441,3 +444,4 @@ def stats_from_allsports(matches, team_id):
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
     }
+    
