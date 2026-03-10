@@ -418,12 +418,15 @@ def stats_from_allsports(matches, team_id):
     scored_all, conceded_all, ht_scored_all = [], [], []
     tid = int(team_id)
     for m in matches:
-        home_id = int(m.get("home_team_key", 0))
-        away_id = int(m.get("away_team_key", 0))
-        # Takım bu maçta oynamıyor mu? Atla
+        try:
+            home_id = int(m.get("home_team_key", 0))
+            away_id = int(m.get("away_team_key", 0))
+        except:
+            home_id = 0; away_id = 0
         if home_id != tid and away_id != tid:
             continue
-        is_home = home_id == tid
+        is_home = (home_id == tid)
+        print(f"AS calc: tid={tid} home_id={home_id} away_id={away_id} is_home={is_home} score={m.get('event_final_result')}")
         final = m.get("event_final_result", "")
         if not final or " - " not in final:
             continue
@@ -475,5 +478,5 @@ def stats_from_allsports(matches, team_id):
         },
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
-            }
-            
+        }
+                    
