@@ -404,6 +404,9 @@ def get_team_stats_allsports(team_id):
         finished = finished[-10:]
         if not finished:
             return None
+        # Debug: hangi maçlar geliyor
+        for m in finished[:3]:
+            print(f"AS match: {m.get('event_home_team')}({m.get('home_team_key')}) vs {m.get('event_away_team')}({m.get('away_team_key')}) = {m.get('event_final_result')} | teamId={team_id}")
         return stats_from_allsports(finished, team_id)
     except Exception as e:
         print(f"AllSports team stats error: {e}")
@@ -472,4 +475,5 @@ def stats_from_allsports(matches, team_id):
         },
         "home": {"avg_scored": avg_sh, "goals_scored": sum(home_scored), "goals_conceded": sum(home_conceded)},
         "away": {"avg_scored": avg_sa, "goals_scored": sum(away_scored), "goals_conceded": sum(away_conceded)}
-                                      }
+            }
+            
