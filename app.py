@@ -145,10 +145,7 @@ def api_signals():
         fixtures = get_fixtures_for_date(date)
         signals = []
         import time
-        deadline = time.time() + 25
         for fix in fixtures:
-            if time.time() > deadline:
-                break
             try:
                 analysis_key = f"analysis_{fix['fixture_id']}"
                 cached = cache.get(analysis_key, ttl_minutes=60)
@@ -183,7 +180,18 @@ def api_signals():
                 if min_iy_prob > 0:
                     iy_threshold = min_iy_prob * 100 if min_iy_prob <= 1 else min_iy_prob
                     iy_sigs = [s for s in iy_sigs if s.get("probability", 0) >= iy_threshold]
-                if iy_sigs or ms_sigs:
+                # min_ms_prob varsa sadece ms_sigs dolu olanları al
+                if min_ms_prob > 0:
+                    if ms_sigs:
+                        signals.append({
+                            "fixture": fix,
+                            "iy_signals": [],
+                            "ms_signals": ms_sigs,
+                            "iyms_top": (analysis.get("iyms_results") or [{}])[0],
+                            "lambda_home": analysis.get("lambda_home"),
+                            "lambda_away": analysis.get("lambda_away"),
+                        })
+                elif iy_sigs or ms_sigs:
                     signals.append({
                         "fixture": fix,
                         "iy_signals": iy_sigs,
