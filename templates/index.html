@@ -275,10 +275,8 @@ function scanMs89() {
   var btn = document.getElementById('ms89Btn');
   var overlay = document.getElementById('ms89Overlay');
   
-  // Toggle — açıksa kapat
   if(overlay && overlay.style.display !== 'none') {
-    overlay.style.display = 'none';
-    btn.classList.remove('active');
+    closeMs89();
     return;
   }
   
@@ -287,6 +285,23 @@ function scanMs89() {
   
   var today = currentDate || new Date().toISOString().split('T')[0];
   
+  // Önce cache'deki maçlardan filtrele - anında göster
+  var cachedResults = [];
+  allFixtures.forEach(function(f) {
+    var a = analysisCache[f.fixture_id];
+    if(!a) return;
+    var ms = (a.ms_signals || []).filter(function(s){ return s.probability >= 89; });
+    if(ms.length > 0) {
+      cachedResults.push({ fixture: f, ms_signals: ms, iy_signals: [] });
+    }
+  });
+  
+  if(cachedResults.length > 0) {
+    btn.textContent = 'MS %89+';
+    showMs89Results(cachedResults);
+  }
+  
+  // Arka planda tam tarama yap
   fetch('/api/signals?date=' + today + '&min_ms_prob=0.89')
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -295,9 +310,18 @@ function scanMs89() {
     })
     .catch(function() {
       btn.textContent = 'MS %89+';
-      btn.classList.remove('active');
-      alert('Veri alınamadı');
+      if(cachedResults.length === 0) {
+        btn.classList.remove('active');
+        alert('Veri alınamadı');
+      }
     });
+}
+
+function closeMs89() {
+  var o = document.getElementById('ms89Overlay');
+  if(o) o.style.display = 'none';
+  var b = document.getElementById('ms89Btn');
+  if(b) { b.classList.remove('active'); b.textContent = 'MS %89+'; }
 }
 
 function showMs89Results(signals) {
@@ -312,7 +336,7 @@ function showMs89Results(signals) {
   var html = '<div style="max-width:600px;margin:0 auto">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">';
   html += '<div style="color:#00c2ff;font-weight:700;font-size:15px">MS %89+ Sinyaller (' + signals.length + ' maç)</div>';
-  html += '<button onclick="document.getElementById('ms89Overlay').style.display='none';document.getElementById('ms89Btn').classList.remove('active')" style="background:#333;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px">✕ Kapat</button>';
+  html += '<button onclick="closeMs89()" style="background:#333;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px">✕ Kapat</button>';
   html += '</div>';
   
   if(signals.length === 0) {
