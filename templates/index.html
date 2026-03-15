@@ -53,6 +53,15 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .filter-select option,.filter-select optgroup{background:#1a1d24;color:var(--text)}
 .signal-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap}
 .signal-btn.active{background:rgba(255,215,0,0.15);border-color:var(--signal);color:var(--signal)}
+.ms-inline-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ms-inline-item{display:flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);min-width:44px}
+.ms-inline-item.ms-sig{border-color:var(--signal);background:rgba(255,215,0,0.08)}
+.ms-inline-label{font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.ms-inline-prob{font-size:14px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.ms-inline-sig{font-size:10px;color:var(--signal)}
+.ms-inline-loading{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.mini-spinner{width:10px;height:10px;border:1.5px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
 .ms89-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap}
 .ms89-btn.active{background:rgba(0,194,255,0.15);border-color:var(--accent2);color:var(--accent2)}
 .live-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap;position:relative}
@@ -231,10 +240,65 @@ function loadDate(date) {
       updateStatsBar(allFixtures);
       renderFixtures(allFixtures);
       document.getElementById('headerSub').textContent = allFixtures.length + ' maç';
+      autoAnalyzeAll(date);
     })
     .catch(function(e) {
       document.getElementById('fixturesContainer').innerHTML = '<div class="error-msg">Veri alınamadı: ' + e.message + '</div>';
     });
+}
+
+// ─── AUTO ANALYZE ────────────────────────────────────────────────────────────
+var autoAnalyzeQueue = [];
+var autoAnalyzeRunning = false;
+
+function autoAnalyzeAll(date) {
+  autoAnalyzeQueue = allFixtures.map(function(f){ return {id: f.fixture_id, date: date}; });
+  if(!autoAnalyzeRunning) processAutoQueue();
+}
+
+function processAutoQueue() {
+  if(autoAnalyzeQueue.length === 0) { autoAnalyzeRunning = false; return; }
+  autoAnalyzeRunning = true;
+  var item = autoAnalyzeQueue.shift();
+  if(analysisCache[item.id]) {
+    setTimeout(processAutoQueue, 50);
+    return;
+  }
+  fetch('/api/analyze/'+item.id+'?date='+item.date)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.analysis) {
+        analysisCache[item.id] = data.analysis;
+        // Karttaki 1X2'yi güncelle
+        var card = document.getElementById('card-'+item.id);
+        var msRes = data.analysis.ms_results||[];
+        var msSigs = data.analysis.ms_signals||[];
+        var iySigs = data.analysis.iy_signals||[];
+        var msColors = {'1':'#00ff88','X':'#ffaa00','2':'#ff6b35'};
+        if(card && msRes.length > 0) {
+          if(iySigs.length>0||msSigs.length>0) card.classList.add('has-signal');
+          var msHtml = '<div class="ms-inline-row">';
+          msRes.forEach(function(r) {
+            var hasSig = msSigs.some(function(s){return s.outcome===r.outcome;});
+            msHtml += '<div class="ms-inline-item'+(hasSig?' ms-sig':'')+'">' +
+              '<span class="ms-inline-label" style="color:'+msColors[r.outcome]+'">'+r.outcome+'</span>' +
+              '<span class="ms-inline-prob" style="color:'+msColors[r.outcome]+'">%'+r.probability+'</span>' +
+              (hasSig?'<span class="ms-inline-sig">⚡</span>':'') +
+            '</div>';
+          });
+          msHtml += '</div>';
+          var metaDiv = card.querySelector('.card-meta');
+          if(metaDiv) {
+            var existing = metaDiv.querySelector('.ms-inline-row,.ms-inline-loading');
+            if(existing) existing.outerHTML = msHtml;
+            else metaDiv.insertAdjacentHTML('beforeend', msHtml);
+          }
+        }
+        updateStatsBar(allFixtures);
+      }
+      setTimeout(processAutoQueue, 300);
+    })
+    .catch(function(){ setTimeout(processAutoQueue, 500); });
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
@@ -478,9 +542,10 @@ function renderFixtures(fixtures) {
 // ─── BUILD CARD ───────────────────────────────────────────────────────────────
 function buildFixtureCard(f) {
   var analysis = analysisCache[f.fixture_id];
-  var signals = analysis ? (analysis.iy_signals||[]) : [];
+  var msResults = analysis ? (analysis.ms_results||[]) : [];
   var msSignals = analysis ? (analysis.ms_signals||[]) : [];
-  var hasSignal = signals.length>0 || msSignals.length>0;
+  var iySigs = analysis ? (analysis.iy_signals||[]) : [];
+  var hasSignal = iySigs.length>0 || msSignals.length>0;
 
   var isLive = ['1H','2H','HT','ET','BT','P','INT','LIVE'].indexOf(f.status||'')>=0;
   var hasScore = f.home_goals!==null && f.home_goals!==undefined && f.away_goals!==null && f.away_goals!==undefined;
@@ -488,7 +553,6 @@ function buildFixtureCard(f) {
   var t = '--:--';
   if(f.date){
     var d = new Date(f.date);
-    // AllSports UTC+0 gonderiyor, Turkiye UTC+3, fark +3 saat
     d = new Date(d.getTime() + 3*60*60*1000);
     var hh = String(d.getUTCHours()).padStart(2,'0');
     var mm = String(d.getUTCMinutes()).padStart(2,'0');
@@ -500,15 +564,26 @@ function buildFixtureCard(f) {
   var homeLogoUrl = 'https://media.api-sports.io/football/teams/' + f.home_team_id + '.png';
   var awayLogoUrl = 'https://media.api-sports.io/football/teams/' + f.away_team_id + '.png';
 
-  var sigBadges = signals.map(function(s){
-    return '<span class="signal-badge iy">'+s.market+'</span>';
-  }).join('') + msSignals.map(function(s){
-    return '<span class="signal-badge ms">MS:'+s.outcome+'</span>';
-  }).join('');
+  var msColors = {'1':'#00ff88','X':'#ffaa00','2':'#ff6b35'};
+  var msHtml = '';
+  if(msResults.length > 0) {
+    msHtml = '<div class="ms-inline-row">';
+    msResults.forEach(function(r) {
+      var hasSig = msSignals.some(function(s){return s.outcome===r.outcome;});
+      msHtml += '<div class="ms-inline-item'+(hasSig?' ms-sig':'')+'">' +
+        '<span class="ms-inline-label" style="color:'+msColors[r.outcome]+'">'+r.outcome+'</span>' +
+        '<span class="ms-inline-prob" style="color:'+msColors[r.outcome]+'">%'+r.probability+'</span>' +
+        (hasSig?'<span class="ms-inline-sig">⚡</span>':'') +
+      '</div>';
+    });
+    msHtml += '</div>';
+  } else {
+    msHtml = '<div class="ms-inline-loading" id="msload-'+f.fixture_id+'"><span class="mini-spinner"></span></div>';
+  }
 
-  return '<div class="fixture-card' + (hasSignal?' has-signal':'') + '" id="card-'+f.fixture_id+'">' +
+  return '<div class="fixture-card'+(hasSignal?' has-signal':'')+'" id="card-'+f.fixture_id+'">' +
     '<div class="fixture-header">' +
-      '<img class="team-logo" src="'+homeLogoUrl+'" alt="" onerror="this.style.display=\'none\'">' +
+      '<img class="team-logo" src="'+homeLogoUrl+'" alt="">' +
       '<div class="teams-block">' +
         '<span class="team-name">'+esc(f.home_team_name||'?')+'</span>' +
         '<div class="match-center">' +
@@ -517,15 +592,15 @@ function buildFixtureCard(f) {
         '</div>' +
         '<span class="team-name away">'+esc(f.away_team_name||'?')+'</span>' +
       '</div>' +
-      '<img class="team-logo" src="'+awayLogoUrl+'" alt="" onerror="this.style.display=\'none\'">' +
+      '<img class="team-logo" src="'+awayLogoUrl+'" alt="">' +
     '</div>' +
     '<div class="card-meta">' +
       '<span class="league-badge">'+esc(f.league_name||'')+'</span>' +
-      '<div class="signals-row">'+sigBadges+'</div>' +
+      msHtml +
     '</div>' +
-    '<div class="analysis-panel" id="panel-'+f.fixture_id+'"></div>' +
   '</div>';
 }
+
 
 // ─── OPEN ANALYSIS ────────────────────────────────────────────────────────────
 function openAnalysis(fid) {
@@ -561,12 +636,25 @@ async function loadAnalysis(fid, date) {
       }
       var sigs = data.analysis.iy_signals||[];
       var msSigs = data.analysis.ms_signals||[];
+      var msRes = data.analysis.ms_results||[];
       if(card && (sigs.length>0||msSigs.length>0)) card.classList.add('has-signal');
-      // badge güncelle
-      var metaDiv = card ? card.querySelector('.signals-row') : null;
-      if(metaDiv){
-        metaDiv.innerHTML = sigs.map(function(s){return '<span class="signal-badge iy">'+s.market+'</span>';}).join('') +
-          msSigs.map(function(s){return '<span class="signal-badge ms">MS:'+s.outcome+'</span>';}).join('');
+      // 1X2 satırını güncelle
+      var msColors = {'1':'#00ff88','X':'#ffaa00','2':'#ff6b35'};
+      var metaDiv = card ? card.querySelector('.card-meta') : null;
+      if(metaDiv && msRes.length > 0) {
+        var msHtml = '<div class="ms-inline-row">';
+        msRes.forEach(function(r) {
+          var hasSig = msSigs.some(function(s){return s.outcome===r.outcome;});
+          msHtml += '<div class="ms-inline-item'+(hasSig?' ms-sig':'')+'">' +
+            '<span class="ms-inline-label" style="color:'+msColors[r.outcome]+'">'+r.outcome+'</span>' +
+            '<span class="ms-inline-prob" style="color:'+msColors[r.outcome]+'">%'+r.probability+'</span>' +
+            (hasSig?'<span class="ms-inline-sig">⚡</span>':'') +
+          '</div>';
+        });
+        msHtml += '</div>';
+        var existing = metaDiv.querySelector('.ms-inline-row,.ms-inline-loading');
+        if(existing) existing.outerHTML = msHtml;
+        else metaDiv.insertAdjacentHTML('beforeend', msHtml);
       }
       updateStatsBar(allFixtures);
     } else {
