@@ -368,7 +368,7 @@ function renderFixtures(fixtures) {
     }
     if(ms89FilterActive) {
       var a2 = analysisCache[f.fixture_id];
-      var hasMs89 = a2 && a2.ms_signals && a2.ms_signals.some(function(s){ return s.probability >= 0.89; });
+      var hasMs89 = a2 && a2.ms_signals && a2.ms_signals.some(function(s){ return s.probability >= 89; });
       if(!hasMs89) return false;
     }
     return true;
