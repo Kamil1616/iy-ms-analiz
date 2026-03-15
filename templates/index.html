@@ -303,17 +303,21 @@ function scanMs89() {
   
   // Arka planda tam tarama yap
   fetch('/api/signals?date=' + today + '&min_ms_prob=0.89')
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(function(data) {
       btn.textContent = 'MS %89+';
       showMs89Results(data.signals || []);
     })
-    .catch(function() {
+    .catch(function(err) {
       btn.textContent = 'MS %89+';
       if(cachedResults.length === 0) {
         btn.classList.remove('active');
-        alert('Veri alınamadı');
+        showMs89Results([]);
       }
+      console.error('Sinyal hatası:', err);
     });
 }
 
