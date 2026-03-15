@@ -179,7 +179,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <option value="">🌍 Tüm Ligler</option>
     </select>
     <button class="signal-btn" id="signalBtn" onclick="toggleSignalFilter()">⚡ Sinyaller</button>
-    <button class="ms89-btn" id="ms89Btn" onclick="toggleMs89Filter()">MS %89+</button>
+    <button class="ms89-btn" id="ms89Btn" onclick="scanMs89()">MS %89+</button>
     <button class="live-btn" id="liveBtn" onclick="toggleLiveFilter()"><span class="live-dot"></span>Canlı</button>
   </div>
 
@@ -271,11 +271,72 @@ function toggleSignalFilter() {
   btn.classList.toggle('active', signalFilterActive);
   renderFixtures(allFixtures);
 }
-function toggleMs89Filter() {
-  ms89FilterActive = !ms89FilterActive;
+function scanMs89() {
   var btn = document.getElementById('ms89Btn');
-  btn.classList.toggle('active', ms89FilterActive);
-  renderFixtures(allFixtures);
+  var overlay = document.getElementById('ms89Overlay');
+  
+  // Toggle — açıksa kapat
+  if(overlay && overlay.style.display !== 'none') {
+    overlay.style.display = 'none';
+    btn.classList.remove('active');
+    return;
+  }
+  
+  btn.classList.add('active');
+  btn.textContent = 'Taranıyor...';
+  
+  var today = currentDate || new Date().toISOString().split('T')[0];
+  
+  fetch('/api/signals?date=' + today + '&min_ms_prob=0.89')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.textContent = 'MS %89+';
+      showMs89Results(data.signals || []);
+    })
+    .catch(function() {
+      btn.textContent = 'MS %89+';
+      btn.classList.remove('active');
+      alert('Veri alınamadı');
+    });
+}
+
+function showMs89Results(signals) {
+  var overlay = document.getElementById('ms89Overlay');
+  if(!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'ms89Overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:999;overflow-y:auto;padding:16px';
+    document.body.appendChild(overlay);
+  }
+  
+  var html = '<div style="max-width:600px;margin:0 auto">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">';
+  html += '<div style="color:#00c2ff;font-weight:700;font-size:15px">MS %89+ Sinyaller (' + signals.length + ' maç)</div>';
+  html += '<button onclick="document.getElementById('ms89Overlay').style.display='none';document.getElementById('ms89Btn').classList.remove('active')" style="background:#333;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px">✕ Kapat</button>';
+  html += '</div>';
+  
+  if(signals.length === 0) {
+    html += '<div style="color:#666;text-align:center;padding:40px">Bugün MS %89+ sinyal yok</div>';
+  } else {
+    signals.forEach(function(s) {
+      var f = s.fixture;
+      var ms = s.ms_signals || [];
+      ms.forEach(function(m) {
+        html += '<div style="background:#1a1d24;border:1px solid #00c2ff44;border-radius:10px;padding:12px;margin-bottom:8px">';
+        html += '<div style="font-size:11px;color:#666;margin-bottom:6px">' + (f.league_name||'') + '</div>';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+        html += '<div style="font-size:13px;font-weight:600">' + f.home_team_name + ' - ' + f.away_team_name + '</div>';
+        html += '<div style="font-family:monospace;font-size:16px;font-weight:700;color:#00c2ff">' + m.probability + '%</div>';
+        html += '</div>';
+        html += '<div style="font-size:11px;color:#aaa;margin-top:4px">' + m.label + ' · Oran: ' + (m.model_odd||'-') + '</div>';
+        html += '</div>';
+      });
+    });
+  }
+  
+  html += '</div>';
+  overlay.innerHTML = html;
+  overlay.style.display = 'block';
 }
 
 // ─── STATS BAR ───────────────────────────────────────────────────────────────
@@ -366,11 +427,7 @@ function renderFixtures(fixtures) {
       var hasSig = a && ((a.iy_signals&&a.iy_signals.length>0)||(a.ms_signals&&a.ms_signals.length>0));
       if(!hasSig) return false;
     }
-    if(ms89FilterActive) {
-      var a2 = analysisCache[f.fixture_id];
-      var hasMs89 = a2 && a2.ms_signals && a2.ms_signals.some(function(s){ return s.probability >= 89; });
-      if(!hasMs89) return false;
-    }
+
     return true;
   });
 
