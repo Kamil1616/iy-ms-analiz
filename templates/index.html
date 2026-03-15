@@ -53,6 +53,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .filter-select option,.filter-select optgroup{background:#1a1d24;color:var(--text)}
 .signal-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap}
 .signal-btn.active{background:rgba(255,215,0,0.15);border-color:var(--signal);color:var(--signal)}
+.ms89-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap}
+.ms89-btn.active{background:rgba(0,194,255,0.15);border-color:var(--accent2);color:var(--accent2)}
 .live-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;white-space:nowrap;position:relative}
 .live-btn.active{background:rgba(255,50,50,0.15);border-color:#ff3232;color:#ff3232}
 .live-dot{width:7px;height:7px;border-radius:50%;background:#ff3232;display:inline-block;margin-right:5px;animation:livepulse 1.2s infinite}
@@ -71,7 +73,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .fixture-header:hover{background:rgba(255,255,255,0.02)}
 
 /* Logo */
-.team-logo{width:28px;height:28px;border-radius:50%;object-fit:contain;background:var(--surface2);flex-shrink:0;min-width:28px}
+.team-logo{width:28px;height:28px;border-radius:50%;object-fit:contain;background:var(--surface2);flex-shrink:0}
 .team-logo-fallback{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0}
 
 .teams-block{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
@@ -177,6 +179,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <option value="">🌍 Tüm Ligler</option>
     </select>
     <button class="signal-btn" id="signalBtn" onclick="toggleSignalFilter()">⚡ Sinyaller</button>
+    <button class="ms89-btn" id="ms89Btn" onclick="toggleMs89Filter()">MS %89+</button>
     <button class="live-btn" id="liveBtn" onclick="toggleLiveFilter()"><span class="live-dot"></span>Canlı</button>
   </div>
 
@@ -195,6 +198,7 @@ var allFixtures = [];
 var analysisCache = {};
 var currentDate = '';
 var signalFilterActive = false;
+var ms89FilterActive = false;
 
 // ─── DATE TABS ───────────────────────────────────────────────────────────────
 function buildDateTabs(dates) {
@@ -265,6 +269,12 @@ function toggleSignalFilter() {
   signalFilterActive = !signalFilterActive;
   var btn = document.getElementById('signalBtn');
   btn.classList.toggle('active', signalFilterActive);
+  renderFixtures(allFixtures);
+}
+function toggleMs89Filter() {
+  ms89FilterActive = !ms89FilterActive;
+  var btn = document.getElementById('ms89Btn');
+  btn.classList.toggle('active', ms89FilterActive);
   renderFixtures(allFixtures);
 }
 
@@ -356,6 +366,11 @@ function renderFixtures(fixtures) {
       var hasSig = a && ((a.iy_signals&&a.iy_signals.length>0)||(a.ms_signals&&a.ms_signals.length>0));
       if(!hasSig) return false;
     }
+    if(ms89FilterActive) {
+      var a2 = analysisCache[f.fixture_id];
+      var hasMs89 = a2 && a2.ms_signals && a2.ms_signals.some(function(s){ return s.probability >= 0.89; });
+      if(!hasMs89) return false;
+    }
     return true;
   });
 
@@ -408,7 +423,7 @@ function buildFixtureCard(f) {
 
   return '<div class="fixture-card' + (hasSignal?' has-signal':'') + '" id="card-'+f.fixture_id+'">' +
     '<div class="fixture-header">' +
-      '<img class="team-logo" src="'+homeLogoUrl+'" alt="" onerror="this.style.visibility=\'hidden\'">' +
+      '<img class="team-logo" src="'+homeLogoUrl+'" alt="" onerror="this.style.display=\'none\'">' +
       '<div class="teams-block">' +
         '<span class="team-name">'+esc(f.home_team_name||'?')+'</span>' +
         '<div class="match-center">' +
@@ -417,7 +432,7 @@ function buildFixtureCard(f) {
         '</div>' +
         '<span class="team-name away">'+esc(f.away_team_name||'?')+'</span>' +
       '</div>' +
-      '<img class="team-logo" src="'+awayLogoUrl+'" alt="" onerror="this.style.visibility=\'hidden\'">' +
+      '<img class="team-logo" src="'+awayLogoUrl+'" alt="" onerror="this.style.display=\'none\'">' +
     '</div>' +
     '<div class="card-meta">' +
       '<span class="league-badge">'+esc(f.league_name||'')+'</span>' +
@@ -534,7 +549,7 @@ function buildAnalysisHtml(fix, analysis) {
   // ── MODÜL B: IY Alt/Üst ──
   html += '<div class="mod-title">MODÜL B — IY ALT/ÜST</div>';
   html += '<div class="iy-over-grid">';
-  var iyThresh = {'0.5':65,'1.5':54,'2.5':35,'3.5':22};
+  var iyThresh = {'0.5':82,'1.5':75,'2.5':60,'3.5':50};
   var iyColors = {'0.5':'var(--accent)','1.5':'var(--accent2)','2.5':'var(--warn)','3.5':'var(--accent3)'};
   ['0.5','1.5','2.5','3.5'].forEach(function(k){
     var prob = (analysis.iy_over_probs||{})[k] || 0;
