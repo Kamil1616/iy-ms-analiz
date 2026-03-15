@@ -178,9 +178,11 @@ def api_signals():
                     iy_sigs = [s for s in iy_sigs if s.get("probability", 0) >= min_prob]
                     ms_sigs = [s for s in ms_sigs if s.get("probability", 0) >= min_prob]
                 if min_ms_prob > 0:
-                    ms_sigs = [s for s in ms_sigs if s.get("probability", 0) >= min_ms_prob]
+                    ms_threshold = min_ms_prob * 100 if min_ms_prob <= 1 else min_ms_prob
+                    ms_sigs = [s for s in ms_sigs if s.get("probability", 0) >= ms_threshold]
                 if min_iy_prob > 0:
-                    iy_sigs = [s for s in iy_sigs if s.get("probability", 0) >= min_iy_prob]
+                    iy_threshold = min_iy_prob * 100 if min_iy_prob <= 1 else min_iy_prob
+                    iy_sigs = [s for s in iy_sigs if s.get("probability", 0) >= iy_threshold]
                 if iy_sigs or ms_sigs:
                     signals.append({
                         "fixture": fix,
